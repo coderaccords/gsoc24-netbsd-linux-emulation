@@ -531,7 +531,8 @@
 315	UNIMPL		tee
 316	UNIMPL		vmsplice
 317	UNIMPL		move_pages
-318	UNIMPL		getcpu
+318	STD		{ int|linux_sys||getcpu(unsigned int *cpu, unsigned int *node, \
+				struct linux_getcpu_cache *tcache); }
 319	STD		{ int|linux_sys||epoll_pwait(int epfd, \
 			    struct linux_epoll_event *events, int maxevents, \
 			    int timeout, const linux_sigset_t *sigmask); }

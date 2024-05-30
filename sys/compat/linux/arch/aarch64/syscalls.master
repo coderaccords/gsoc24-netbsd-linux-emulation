@@ -345,7 +345,8 @@
 			    struct rusage50 *rusage); }
 166	NOARGS		{ int|sys||umask(int newmask); }
 167	UNIMPL		prctl
-168	UNIMPL		getcpu
+168	STD		{ int|linux_sys||getcpu(unsigned int *cpu, unsigned int *node, \
+				struct linux_getcpu_cache *tcache); }
 169	STD		{ int|linux_sys||gettimeofday(struct timeval50 *tp, \
 			    struct timezone *tzp); }
 170	STD		{ int|linux_sys||settimeofday(struct timeval50 *tp, \

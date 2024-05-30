@@ -60,6 +60,7 @@
 #include <compat/linux/common/linux_signal.h>
 #include <compat/linux/common/linux_siginfo.h>
 #include <compat/linux/common/linux_machdep.h>
+#include <compat/linux/common/linux_sched.h>
 
 #include <compat/linux/linux_syscallargs.h>
 
@@ -572,7 +573,8 @@
 			    struct linux_mmsghdr *msgvec, unsigned int vlen, \
 			    unsigned int flags); }
 308	UNIMPL		setns
-309	UNIMPL		getcpu
+309 STD		{ int|linux_sys||getcpu(unsigned int *cpu, unsigned int *node, \
+				struct linux_getcpu_cache *tcache); }
 310	UNIMPL		process_vm_readv
 311	UNIMPL		process_vm_writev
 312	UNIMPL		kcmp

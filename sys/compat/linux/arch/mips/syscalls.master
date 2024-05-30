@@ -535,7 +535,8 @@
 310	NOARGS		{ int|sys||__futex_get_robust_list(lwpid_t lwpid, \
 			    void **headp, size_t *lenp); }
 311	UNIMPL		kexec_load
-312	UNIMPL		getcpu
+312	STD		{ int|linux_sys||getcpu(unsigned int *cpu, unsigned int *node, \
+				struct linux_getcpu_cache *tcache); }
 313	STD		{ int|linux_sys||epoll_pwait(int epfd, \
 			    struct linux_epoll_event *events, int maxevents, \
 			    int timeout, const linux_sigset_t *sigmask); }

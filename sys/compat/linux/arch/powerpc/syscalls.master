@@ -535,7 +535,8 @@
 300	NOARGS		{ int|sys||__futex_get_robust_list(lwpid_t lwpid, \
 			    void **headp, size_t *lenp); }
 301	UNIMPL		move_pages
-302	UNIMPL		getcpu
+302	STD		{ int|linux_sys||getcpu(unsigned int *cpu, unsigned int *node, \
+				struct linux_getcpu_cache *tcache); }
 303	STD		{ int|linux_sys||epoll_pwait(int epfd, \
 			    struct linux_epoll_event *events, int maxevents, \
 			    int timeout, const linux_sigset_t *sigmask); }
