@@ -1,4 +1,4 @@
-/* $NetBSD: linux_sysent.c,v 1.92 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call switch table.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_sysent.c,v 1.92 2023/08/19 17:50:24 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #include <sys/param.h>
 #include <sys/poll.h>
@@ -1449,8 +1449,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 344 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 345 = filler */
+		ns(struct linux_sys_getcpu_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_getcpu
+	},		/* 345 = getcpu */
 	{
 		ns(struct linux_sys_epoll_pwait_args),
 		.sy_flags = SYCALL_ARG_PTR,

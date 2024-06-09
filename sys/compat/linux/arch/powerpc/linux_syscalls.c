@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.95 2023/08/19 17:50:25 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.95 2023/08/19 17:50:25 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #include <sys/param.h>
@@ -335,7 +335,7 @@ const char *const linux_syscallnames[] = {
 	/* 299 */	"__futex_set_robust_list",
 	/* 300 */	"__futex_get_robust_list",
 	/* 301 */	"#301 (unimplemented move_pages)",
-	/* 302 */	"#302 (unimplemented getcpu)",
+	/* 302 */	"getcpu",
 	/* 303 */	"epoll_pwait",
 	/* 304 */	"utimensat",
 	/* 305 */	"#305 (unimplemented signalfd)",
@@ -857,7 +857,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 299 */	NULL, /* __futex_set_robust_list */
 	/* 300 */	NULL, /* __futex_get_robust_list */
 	/* 301 */	NULL, /* unimplemented move_pages */
-	/* 302 */	NULL, /* unimplemented getcpu */
+	/* 302 */	NULL, /* getcpu */
 	/* 303 */	NULL, /* epoll_pwait */
 	/* 304 */	NULL, /* utimensat */
 	/* 305 */	NULL, /* unimplemented signalfd */

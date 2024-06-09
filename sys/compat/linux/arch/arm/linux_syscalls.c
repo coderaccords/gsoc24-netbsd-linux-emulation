@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.92 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.92 2023/08/19 17:50:24 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #include <sys/param.h>
@@ -380,7 +380,7 @@ const char *const linux_syscallnames[] = {
 	/* 342 */	"#342 (unimplemented tee)",
 	/* 343 */	"#343 (unimplemented vmsplice)",
 	/* 344 */	"#344 (unimplemented move_pages)",
-	/* 345 */	"#345 (unimplemented getcpu)",
+	/* 345 */	"getcpu",
 	/* 346 */	"epoll_pwait",
 	/* 347 */	"#347 (unimplemented kexec_load)",
 	/* 348 */	"utimensat",
@@ -902,7 +902,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 342 */	NULL, /* unimplemented tee */
 	/* 343 */	NULL, /* unimplemented vmsplice */
 	/* 344 */	NULL, /* unimplemented move_pages */
-	/* 345 */	NULL, /* unimplemented getcpu */
+	/* 345 */	NULL, /* getcpu */
 	/* 346 */	NULL, /* epoll_pwait */
 	/* 347 */	NULL, /* unimplemented kexec_load */
 	/* 348 */	NULL, /* utimensat */

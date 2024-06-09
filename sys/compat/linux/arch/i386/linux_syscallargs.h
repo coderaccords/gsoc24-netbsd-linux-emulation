@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscallargs.h,v 1.126 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument lists.
@@ -1186,6 +1186,13 @@ struct sys___futex_set_robust_list_args;
 
 struct sys___futex_get_robust_list_args;
 
+struct linux_sys_getcpu_args {
+	syscallarg(unsigned int *) cpu;
+	syscallarg(unsigned int *) node;
+	syscallarg(struct linux_getcpu_cache *) tcache;
+};
+check_syscall_args(linux_sys_getcpu)
+
 struct linux_sys_epoll_pwait_args {
 	syscallarg(int) epfd;
 	syscallarg(struct linux_epoll_event *) events;
@@ -1805,6 +1812,8 @@ int	linux_sys_ppoll(struct lwp *, const struct linux_sys_ppoll_args *, register_
 int	sys___futex_set_robust_list(struct lwp *, const struct sys___futex_set_robust_list_args *, register_t *);
 
 int	sys___futex_get_robust_list(struct lwp *, const struct sys___futex_get_robust_list_args *, register_t *);
+
+int	linux_sys_getcpu(struct lwp *, const struct linux_sys_getcpu_args *, register_t *);
 
 int	linux_sys_epoll_pwait(struct lwp *, const struct linux_sys_epoll_pwait_args *, register_t *);
 

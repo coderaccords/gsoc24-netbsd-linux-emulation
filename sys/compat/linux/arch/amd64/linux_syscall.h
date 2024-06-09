@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscall.h,v 1.81 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -734,6 +734,9 @@
 
 /* syscall: "sendmmsg" ret: "int" args: "int" "struct linux_mmsghdr *" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_sendmmsg	307
+
+/* syscall: "getcpu" ret: "int" args: "unsigned int *" "unsigned int *" "struct linux_getcpu_cache *" */
+#define	LINUX_SYS_getcpu	309
 
 /* syscall: "getrandom" ret: "ssize_t" args: "void *" "size_t" "unsigned int" */
 #define	LINUX_SYS_getrandom	318

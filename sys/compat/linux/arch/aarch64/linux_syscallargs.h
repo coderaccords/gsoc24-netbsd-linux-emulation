@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscallargs.h,v 1.10 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument lists.
@@ -756,6 +756,13 @@ struct compat_50_sys_getrusage_args;
 
 struct sys_umask_args;
 
+struct linux_sys_getcpu_args {
+	syscallarg(unsigned int *) cpu;
+	syscallarg(unsigned int *) node;
+	syscallarg(struct linux_getcpu_cache *) tcache;
+};
+check_syscall_args(linux_sys_getcpu)
+
 struct linux_sys_gettimeofday_args {
 	syscallarg(struct timeval50 *) tp;
 	syscallarg(struct timezone *) tzp;
@@ -1339,6 +1346,8 @@ int	linux_sys_setrlimit(struct lwp *, const struct linux_sys_setrlimit_args *, r
 int	compat_50_sys_getrusage(struct lwp *, const struct compat_50_sys_getrusage_args *, register_t *);
 
 int	sys_umask(struct lwp *, const struct sys_umask_args *, register_t *);
+
+int	linux_sys_getcpu(struct lwp *, const struct linux_sys_getcpu_args *, register_t *);
 
 int	linux_sys_gettimeofday(struct lwp *, const struct linux_sys_gettimeofday_args *, register_t *);
 

@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscall.h,v 1.126 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -760,6 +760,9 @@
 
 /* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "void **" "size_t *" */
 #define	LINUX_SYS___futex_get_robust_list	312
+
+/* syscall: "getcpu" ret: "int" args: "unsigned int *" "unsigned int *" "struct linux_getcpu_cache *" */
+#define	LINUX_SYS_getcpu	318
 
 /* syscall: "epoll_pwait" ret: "int" args: "int" "struct linux_epoll_event *" "int" "int" "const linux_sigset_t *" */
 #define	LINUX_SYS_epoll_pwait	319

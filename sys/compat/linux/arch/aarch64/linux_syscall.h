@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscall.h,v 1.10 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -422,6 +422,9 @@
 
 /* syscall: "umask" ret: "int" args: "int" */
 #define	LINUX_SYS_umask	166
+
+/* syscall: "getcpu" ret: "int" args: "unsigned int *" "unsigned int *" "struct linux_getcpu_cache *" */
+#define	LINUX_SYS_getcpu	168
 
 /* syscall: "gettimeofday" ret: "int" args: "struct timeval50 *" "struct timezone *" */
 #define	LINUX_SYS_gettimeofday	169

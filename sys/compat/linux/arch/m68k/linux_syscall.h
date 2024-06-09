@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscall.h,v 1.117 2023/08/19 17:50:25 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -746,6 +746,9 @@
 
 /* syscall: "sched_getaffinity" ret: "int" args: "pid_t" "unsigned int" "unsigned long *" */
 #define	LINUX_SYS_sched_getaffinity	312
+
+/* syscall: "getcpu" ret: "int" args: "unsigned int *" "unsigned int *" "struct linux_getcpu_cache *" */
+#define	LINUX_SYS_getcpu	314
 
 /* syscall: "epoll_pwait" ret: "int" args: "int" "struct linux_epoll_event *" "int" "int" "const linux_sigset_t *" */
 #define	LINUX_SYS_epoll_pwait	315

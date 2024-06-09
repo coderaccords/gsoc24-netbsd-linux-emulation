@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.81 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.81 2023/08/19 17:50:24 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #if defined(_KERNEL_OPT)
@@ -34,6 +34,7 @@ __KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.81 2023/08/19 17:50:24 christos
 #include <compat/linux/common/linux_signal.h>
 #include <compat/linux/common/linux_siginfo.h>
 #include <compat/linux/common/linux_machdep.h>
+#include <compat/linux/common/linux_sched.h>
 #include <compat/linux/linux_syscallargs.h>
 #else /* _KERNEL_OPT */
 #include <sys/null.h>
@@ -376,7 +377,7 @@ const char *const linux_syscallnames[] = {
 	/* 306 */	"#306 (unimplemented syncfs)",
 	/* 307 */	"sendmmsg",
 	/* 308 */	"#308 (unimplemented setns)",
-	/* 309 */	"#309 (unimplemented getcpu)",
+	/* 309 */	"getcpu",
 	/* 310 */	"#310 (unimplemented process_vm_readv)",
 	/* 311 */	"#311 (unimplemented process_vm_writev)",
 	/* 312 */	"#312 (unimplemented kcmp)",
@@ -920,7 +921,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 306 */	NULL, /* unimplemented syncfs */
 	/* 307 */	NULL, /* sendmmsg */
 	/* 308 */	NULL, /* unimplemented setns */
-	/* 309 */	NULL, /* unimplemented getcpu */
+	/* 309 */	NULL, /* getcpu */
 	/* 310 */	NULL, /* unimplemented process_vm_readv */
 	/* 311 */	NULL, /* unimplemented process_vm_writev */
 	/* 312 */	NULL, /* unimplemented kcmp */

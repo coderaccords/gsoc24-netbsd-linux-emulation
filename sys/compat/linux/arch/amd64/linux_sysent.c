@@ -1,4 +1,4 @@
-/* $NetBSD: linux_sysent.c,v 1.81 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call switch table.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_sysent.c,v 1.81 2023/08/19 17:50:24 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #include "opt_sysv.h"
@@ -33,6 +33,7 @@ __KERNEL_RCSID(0, "$NetBSD: linux_sysent.c,v 1.81 2023/08/19 17:50:24 christos E
 #include <compat/linux/common/linux_signal.h>
 #include <compat/linux/common/linux_siginfo.h>
 #include <compat/linux/common/linux_machdep.h>
+#include <compat/linux/common/linux_sched.h>
 #include <compat/linux/linux_syscallargs.h>
 
 #define	s(type)	sizeof(type)
@@ -1400,8 +1401,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 308 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 309 = filler */
+		ns(struct linux_sys_getcpu_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_getcpu
+	},		/* 309 = getcpu */
 	{
 		.sy_call = linux_sys_nosys,
 	},		/* 310 = filler */

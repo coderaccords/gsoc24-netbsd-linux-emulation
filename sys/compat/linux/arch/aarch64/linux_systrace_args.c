@@ -1,4 +1,4 @@
-/* $NetBSD: linux_systrace_args.c,v 1.10 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument to DTrace register array conversion.
@@ -1175,6 +1175,15 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		const struct sys_umask_args *p = params;
 		iarg[0] = SCARG(p, newmask); /* int */
 		*n_args = 1;
+		break;
+	}
+	/* linux_sys_getcpu */
+	case 168: {
+		const struct linux_sys_getcpu_args *p = params;
+		uarg[0] = (intptr_t) SCARG(p, cpu); /* unsigned int * */
+		uarg[1] = (intptr_t) SCARG(p, node); /* unsigned int * */
+		uarg[2] = (intptr_t) SCARG(p, tcache); /* struct linux_getcpu_cache * */
+		*n_args = 3;
 		break;
 	}
 	/* linux_sys_gettimeofday */
@@ -3740,6 +3749,22 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_getcpu */
+	case 168:
+		switch(ndx) {
+		case 0:
+			p = "unsigned int *";
+			break;
+		case 1:
+			p = "unsigned int *";
+			break;
+		case 2:
+			p = "struct linux_getcpu_cache *";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_gettimeofday */
 	case 169:
 		switch(ndx) {
@@ -5386,6 +5411,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* sys_umask */
 	case 166:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_getcpu */
+	case 168:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

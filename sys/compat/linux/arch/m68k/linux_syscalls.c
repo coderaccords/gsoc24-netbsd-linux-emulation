@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.117 2023/08/19 17:50:25 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.117 2023/08/19 17:50:25 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #if defined(_KERNEL_OPT)
@@ -368,7 +368,7 @@ const char *const linux_syscallnames[] = {
 	/* 311 */	"sched_setaffinity",
 	/* 312 */	"sched_getaffinity",
 	/* 313 */	"#313 (unimplemented kexec_load)",
-	/* 314 */	"#314 (unimplemented getcpu)",
+	/* 314 */	"getcpu",
 	/* 315 */	"epoll_pwait",
 	/* 316 */	"utimensat",
 	/* 317 */	"#317 (unimplemented signalfd)",
@@ -906,7 +906,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 311 */	NULL, /* sched_setaffinity */
 	/* 312 */	NULL, /* sched_getaffinity */
 	/* 313 */	NULL, /* unimplemented kexec_load */
-	/* 314 */	NULL, /* unimplemented getcpu */
+	/* 314 */	NULL, /* getcpu */
 	/* 315 */	NULL, /* epoll_pwait */
 	/* 316 */	NULL, /* utimensat */
 	/* 317 */	NULL, /* unimplemented signalfd */

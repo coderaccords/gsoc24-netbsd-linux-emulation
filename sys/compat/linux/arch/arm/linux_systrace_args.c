@@ -1,4 +1,4 @@
-/* $NetBSD: linux_systrace_args.c,v 1.25 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument to DTrace register array conversion.
@@ -1939,6 +1939,15 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		iarg[0] = SCARG(p, lwpid); /* lwpid_t */
 		uarg[1] = (intptr_t) SCARG(p, headp); /* void ** */
 		uarg[2] = (intptr_t) SCARG(p, lenp); /* size_t * */
+		*n_args = 3;
+		break;
+	}
+	/* linux_sys_getcpu */
+	case 345: {
+		const struct linux_sys_getcpu_args *p = params;
+		uarg[0] = (intptr_t) SCARG(p, cpu); /* unsigned int * */
+		uarg[1] = (intptr_t) SCARG(p, node); /* unsigned int * */
+		uarg[2] = (intptr_t) SCARG(p, tcache); /* struct linux_getcpu_cache * */
 		*n_args = 3;
 		break;
 	}
@@ -5323,6 +5332,22 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_getcpu */
+	case 345:
+		switch(ndx) {
+		case 0:
+			p = "unsigned int *";
+			break;
+		case 1:
+			p = "unsigned int *";
+			break;
+		case 2:
+			p = "struct linux_getcpu_cache *";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_epoll_pwait */
 	case 346:
 		switch(ndx) {
@@ -6843,6 +6868,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* sys___futex_get_robust_list */
 	case 339:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_getcpu */
+	case 345:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

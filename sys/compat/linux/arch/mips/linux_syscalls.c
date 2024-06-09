@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.89 2023/08/19 17:50:25 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.89 2023/08/19 17:50:25 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #include <sys/param.h>
@@ -342,7 +342,7 @@ const char *const linux_syscallnames[] = {
 	/* 309 */	"__futex_set_robust_list",
 	/* 310 */	"__futex_get_robust_list",
 	/* 311 */	"#311 (unimplemented kexec_load)",
-	/* 312 */	"#312 (unimplemented getcpu)",
+	/* 312 */	"getcpu",
 	/* 313 */	"epoll_pwait",
 	/* 314 */	"#314 (unimplemented ioprio_set)",
 	/* 315 */	"#315 (unimplemented ioprio_get)",
@@ -859,7 +859,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 309 */	NULL, /* __futex_set_robust_list */
 	/* 310 */	NULL, /* __futex_get_robust_list */
 	/* 311 */	NULL, /* unimplemented kexec_load */
-	/* 312 */	NULL, /* unimplemented getcpu */
+	/* 312 */	NULL, /* getcpu */
 	/* 313 */	NULL, /* epoll_pwait */
 	/* 314 */	NULL, /* unimplemented ioprio_set */
 	/* 315 */	NULL, /* unimplemented ioprio_get */

@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscallargs.h,v 1.81 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument lists.
@@ -1195,6 +1195,13 @@ struct linux_sys_sendmmsg_args {
 };
 check_syscall_args(linux_sys_sendmmsg)
 
+struct linux_sys_getcpu_args {
+	syscallarg(unsigned int *) cpu;
+	syscallarg(unsigned int *) node;
+	syscallarg(struct linux_getcpu_cache *) tcache;
+};
+check_syscall_args(linux_sys_getcpu)
+
 struct sys_getrandom_args;
 
 struct linux_sys_memfd_create_args {
@@ -1718,6 +1725,8 @@ int	linux_sys_recvmmsg(struct lwp *, const struct linux_sys_recvmmsg_args *, reg
 int	linux_sys_prlimit64(struct lwp *, const struct linux_sys_prlimit64_args *, register_t *);
 
 int	linux_sys_sendmmsg(struct lwp *, const struct linux_sys_sendmmsg_args *, register_t *);
+
+int	linux_sys_getcpu(struct lwp *, const struct linux_sys_getcpu_args *, register_t *);
 
 int	sys_getrandom(struct lwp *, const struct sys_getrandom_args *, register_t *);
 

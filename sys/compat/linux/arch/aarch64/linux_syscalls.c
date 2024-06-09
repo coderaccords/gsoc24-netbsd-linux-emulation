@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.10 2023/08/19 17:50:24 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.10 2023/08/19 17:50:24 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #if defined(_KERNEL_OPT)
@@ -208,7 +208,7 @@ const char *const linux_syscallnames[] = {
 	/* 165 */	"getrusage",
 	/* 166 */	"umask",
 	/* 167 */	"#167 (unimplemented prctl)",
-	/* 168 */	"#168 (unimplemented getcpu)",
+	/* 168 */	"getcpu",
 	/* 169 */	"gettimeofday",
 	/* 170 */	"settimeofday",
 	/* 171 */	"#171 (unimplemented adjtimex)",
@@ -746,7 +746,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 165 */	NULL, /* getrusage */
 	/* 166 */	NULL, /* umask */
 	/* 167 */	NULL, /* unimplemented prctl */
-	/* 168 */	NULL, /* unimplemented getcpu */
+	/* 168 */	NULL, /* getcpu */
 	/* 169 */	NULL, /* gettimeofday */
 	/* 170 */	NULL, /* settimeofday */
 	/* 171 */	NULL, /* unimplemented adjtimex */
