@@ -2186,6 +2186,16 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 3;
 		break;
 	}
+	/* linux_sys_faccessat2 */
+	case 439: {
+		const struct linux_sys_faccessat2_args *p = params;
+		iarg[0] = SCARG(p, fd); /* int */
+		uarg[1] = (intptr_t) SCARG(p, path); /* const char * */
+		iarg[2] = SCARG(p, amode); /* int */
+		iarg[3] = SCARG(p, flags); /* int */
+		*n_args = 4;
+		break;
+	}
 	/* linux_sys_epoll_pwait2 */
 	case 441: {
 		const struct linux_sys_epoll_pwait2_args *p = params;
@@ -5784,6 +5794,25 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_faccessat2 */
+	case 439:
+		switch(ndx) {
+		case 0:
+			p = "int";
+			break;
+		case 1:
+			p = "const char *";
+			break;
+		case 2:
+			p = "int";
+			break;
+		case 3:
+			p = "int";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_epoll_pwait2 */
 	case 441:
 		switch(ndx) {
@@ -7077,6 +7106,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_sys_close_range */
 	case 436:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_faccessat2 */
+	case 439:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

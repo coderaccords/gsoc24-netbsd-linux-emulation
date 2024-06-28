@@ -608,7 +608,7 @@ const char *const linux_syscallnames[] = {
 	/* 546 */	"close_range",
 	/* 547 */	"#547 (unimplemented)",
 	/* 548 */	"#548 (unimplemented)",
-	/* 549 */	"#549 (unimplemented)",
+	/* 549 */	"faccessat2",
 	/* 550 */	"#550 (unimplemented)",
 	/* 551 */	"epoll_pwait2",
 	/* 552 */	"# filler",
@@ -1661,7 +1661,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 546 */	NULL, /* close_range */
 	/* 547 */	NULL, /* unimplemented */
 	/* 548 */	NULL, /* unimplemented */
-	/* 549 */	NULL, /* unimplemented */
+	/* 549 */	NULL, /* faccessat2 */
 	/* 550 */	NULL, /* unimplemented */
 	/* 551 */	NULL, /* epoll_pwait2 */
 	/* 552 */	NULL, /* filler */

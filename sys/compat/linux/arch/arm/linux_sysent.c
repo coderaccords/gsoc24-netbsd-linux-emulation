@@ -1769,8 +1769,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 438 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 439 = filler */
+		ns(struct linux_sys_faccessat2_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_faccessat2
+	},		/* 439 = faccessat2 */
 	{
 		.sy_call = linux_sys_nosys,
 	},		/* 440 = filler */

@@ -507,7 +507,7 @@ const char *const linux_syscallnames[] = {
 	/* 436 */	"close_range",
 	/* 437 */	"#437 (unimplemented openat2)",
 	/* 438 */	"#438 (unimplemented pidfd_getfd)",
-	/* 439 */	"#439 (unimplemented faccessat2)",
+	/* 439 */	"faccessat2",
 	/* 440 */	"#440 (unimplemented process_madvise)",
 	/* 441 */	"epoll_pwait2",
 	/* 442 */	"#442 (unimplemented mount_setattr)",
@@ -1051,7 +1051,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 436 */	NULL, /* close_range */
 	/* 437 */	NULL, /* unimplemented openat2 */
 	/* 438 */	NULL, /* unimplemented pidfd_getfd */
-	/* 439 */	NULL, /* unimplemented faccessat2 */
+	/* 439 */	NULL, /* faccessat2 */
 	/* 440 */	NULL, /* unimplemented process_madvise */
 	/* 441 */	NULL, /* epoll_pwait2 */
 	/* 442 */	NULL, /* unimplemented mount_setattr */

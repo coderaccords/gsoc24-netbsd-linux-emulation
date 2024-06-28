@@ -235,7 +235,9 @@ fd_nameiat(struct lwp *l, int fdat, struct nameidata *ndp)
 	file_t *dfp;
 	int error;
 
-	if (fdat != AT_FDCWD) {
+	const char *path = pathbuf_stringcopy_get(ndp->ni_pathbuf);
+
+	if (fdat != AT_FDCWD && path[0] != '/') {
 		if ((error = fd_getvnode(fdat, &dfp)) != 0)
 			goto out;
 
@@ -244,9 +246,10 @@ fd_nameiat(struct lwp *l, int fdat, struct nameidata *ndp)
 
 	error = namei(ndp);
 
-	if (fdat != AT_FDCWD)
+	if (fdat != AT_FDCWD && path[0] != '/')
 		fd_putfile(fdat);
 out:
+	pathbuf_stringcopy_put(ndp->ni_pathbuf, path);	
 	return error;
 }
 
@@ -258,7 +261,7 @@ fd_nameiat_simple_user(struct lwp *l, int fdat, const char *path,
 	struct vnode *dvp;
 	int error;
 
-	if (fdat != AT_FDCWD) {
+	if (fdat != AT_FDCWD && path[0] != '/') {
 		if ((error = fd_getvnode(fdat, &dfp)) != 0)
 			goto out;
 
@@ -269,7 +272,7 @@ fd_nameiat_simple_user(struct lwp *l, int fdat, const char *path,
 
 	error = nameiat_simple_user(dvp, path, sflags, vp_ret);
 
-	if (fdat != AT_FDCWD)
+	if (fdat != AT_FDCWD && path[0] != '/')
 		fd_putfile(fdat);
 out:
 	return error;

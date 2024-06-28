@@ -899,6 +899,26 @@ linux_to_bsd_atflags(int lflags)
 	return bflags;
 }
 
+int
+linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap, register_t *retval)
+{
+	/* {
+		syscallarg(int) fd;
+		syscallarg(const char *) path;
+		syscallarg(int) amode;
+		syscallarg(int) flags;
+	}*/
+	int flag = linux_to_bsd_atflags(SCARG(uap, flags));
+	int mode = SCARG(uap, amode);
+	int fd = SCARG(uap, fd);
+	const char *path = SCARG(uap, path);
+	int error;
+
+	error = do_sys_accessat(l, fd, path, mode, flag);
+	
+	return error;
+}
+
 
 #define LINUX_NOT_SUPPORTED(fun) \
 int \

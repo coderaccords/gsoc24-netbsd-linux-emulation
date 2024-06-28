@@ -624,6 +624,9 @@
 /* syscall: "close_range" ret: "int" args: "unsigned int" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_close_range	436
 
+/* syscall: "faccessat2" ret: "int" args: "int" "const char *" "int" "int" */
+#define	LINUX_SYS_faccessat2	439
+
 /* syscall: "nosys" ret: "int" args: */
 #define	LINUX_SYS_nosys	440
 
