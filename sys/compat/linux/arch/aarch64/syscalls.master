@@ -684,7 +684,8 @@
 			    unsigned int last, unsigned int flags); }
 437	UNIMPL		openat2
 438	UNIMPL		pidfd_getfd
-439	UNIMPL		faccessat2
+439	STD		{ int|linux_sys||faccessat2(int fd, const char *path, \
+			    int amode, int flags); }
 
 ; we want a "nosys" syscall, we'll just add an extra entry for it.
 440	STD		{ int|linux_sys||nosys(void); }

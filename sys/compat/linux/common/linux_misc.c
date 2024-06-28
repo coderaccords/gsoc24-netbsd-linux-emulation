@@ -2143,7 +2143,7 @@ linux_sys_readahead(struct lwp *l, const struct linux_sys_readahead_args *uap,
 }
 
 int
-linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args* uap, register_t *retval)
+linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args *uap, register_t *retval)
 {
 	/* {
 		syscallarg(unsigned int *) cpu;
@@ -2151,9 +2151,8 @@ linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args* uap, register_t *
 		syscallarg(struct linux_getcpu_cache *) tcache;
 	}*/
 	u_int cpu_id, node_id;
-	int error;
+	int error = 0;
 
-	error = 0;
 	cpu_id = l->l_cpu->ci_data.cpu_index;
 	node_id = l->l_cpu->ci_data.cpu_numa_id;
 	
@@ -2162,11 +2161,11 @@ linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args* uap, register_t *
 		error = copyout(&cpu_id, SCARG(uap, cpu), sizeof(cpu_id));
 
 	}
+	
 	// TO-DO: Test on a NUMA machine if the node_id returned is correct
 	if(SCARG(uap, node))
 	{
 		error = copyout(&node_id, SCARG(uap, node), sizeof(node_id));
-		// printf("node_id = %d\n",node_id);
 	}
 
 	return error;

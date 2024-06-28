@@ -709,7 +709,8 @@
 			    unsigned int last, unsigned int flags); }
 437	UNIMPL		openat2
 438	UNIMPL		pidfd_getfd
-439	UNIMPL		faccessat2
+439	STD		{ int|linux_sys||faccessat2(int fd, const char *path, \
+			    int amode, int flags); }
 440	UNIMPL		process_madvise
 441	STD		{ int|linux_sys||epoll_pwait2(int epfd, \
 			    struct linux_epoll_event *events, int maxevents, \

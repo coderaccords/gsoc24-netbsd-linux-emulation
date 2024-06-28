@@ -865,7 +865,8 @@
 			    unsigned int last, unsigned int flags); }
 547	UNIMPL
 548	UNIMPL
-549	UNIMPL
+549	STD		{ int|linux_sys||faccessat2(int fd, const char *path, \
+			    int amode, int flags); }
 550	UNIMPL
 551	STD		{ int|linux_sys||epoll_pwait2(int epfd, \
 			    struct linux_epoll_event *events, int maxevents, \
