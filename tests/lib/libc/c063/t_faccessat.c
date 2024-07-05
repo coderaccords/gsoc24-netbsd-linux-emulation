@@ -52,157 +52,203 @@ __RCSID("$NetBSD: t_faccessat.c,v 1.3 2017/01/10 15:13:56 christos Exp $");
 ATF_TC(faccessat_fd);
 ATF_TC_HEAD(faccessat_fd, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "See that faccessat works with fd");
+    atf_tc_set_md_var(tc, "descr", "See that faccessat works with fd");
 }
 ATF_TC_BODY(faccessat_fd, tc)
 {
-	int dfd;
-	int fd;
+    int dfd;
+    int fd;
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
-	ATF_REQUIRE(close(fd) == 0);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
+    ATF_REQUIRE(close(fd) == 0);
 
-	ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
-	ATF_REQUIRE(faccessat(dfd, BASEFILE, F_OK, 0) == 0);
-	ATF_REQUIRE(close(dfd) == 0);
+    ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
+    ATF_REQUIRE(faccessat(dfd, BASEFILE, F_OK, 0) == 0);
+    ATF_REQUIRE(close(dfd) == 0);
 }
 
 ATF_TC(faccessat_fdcwd);
 ATF_TC_HEAD(faccessat_fdcwd, tc)
 {
-	atf_tc_set_md_var(tc, "descr", 
-			  "See that faccessat works with fd as AT_FDCWD");
+    atf_tc_set_md_var(tc, "descr", 
+            "See that faccessat works with fd as AT_FDCWD");
 }
 ATF_TC_BODY(faccessat_fdcwd, tc)
 {
-	int fd;
+    int fd;
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
-	ATF_REQUIRE(close(fd) == 0);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
+    ATF_REQUIRE(close(fd) == 0);
 
-	ATF_REQUIRE(chdir(DIR) == 0);
-	ATF_REQUIRE(faccessat(AT_FDCWD, BASEFILE, F_OK, 0) == 0);
+    ATF_REQUIRE(chdir(DIR) == 0);
+    ATF_REQUIRE(faccessat(AT_FDCWD, BASEFILE, F_OK, 0) == 0);
 }
 
 ATF_TC(faccessat_fdcwderr);
 ATF_TC_HEAD(faccessat_fdcwderr, tc)
 {
-	atf_tc_set_md_var(tc, "descr", 
-		  "See that faccessat fails with fd as AT_FDCWD and bad path");
+    atf_tc_set_md_var(tc, "descr", 
+            "See that faccessat fails with fd as AT_FDCWD and bad path");
 }
 ATF_TC_BODY(faccessat_fdcwderr, tc)
 {
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE(faccessat(AT_FDCWD, FILEERR, F_OK, 0) == -1);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE(faccessat(AT_FDCWD, FILEERR, F_OK, 0) == -1);
 }
 
 ATF_TC(faccessat_fderr1);
 ATF_TC_HEAD(faccessat_fderr1, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "See that faccessat fail with bad path");
+    atf_tc_set_md_var(tc, "descr", "See that faccessat fail with bad path");
 }
 ATF_TC_BODY(faccessat_fderr1, tc)
 {
-	int dfd;
+    int dfd;
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
-	ATF_REQUIRE(faccessat(dfd, FILEERR, F_OK, 0) == -1);
-	ATF_REQUIRE(close(dfd) == 0);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
+    ATF_REQUIRE(faccessat(dfd, FILEERR, F_OK, 0) == -1);
+    ATF_REQUIRE(close(dfd) == 0);
 }
 
 ATF_TC(faccessat_fderr2);
 ATF_TC_HEAD(faccessat_fderr2, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "See that faccessat fails with bad fdat");
+    atf_tc_set_md_var(tc, "descr", "See that faccessat fails with bad fdat");
 }
 ATF_TC_BODY(faccessat_fderr2, tc)
 {
-	int dfd;
-	int fd;
-	char cwd[MAXPATHLEN];
+    int dfd;
+    int fd;
+    char cwd[MAXPATHLEN];
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
-	ATF_REQUIRE(close(fd) == 0);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
+    ATF_REQUIRE(close(fd) == 0);
 
-	ATF_REQUIRE((dfd = open(getcwd(cwd, MAXPATHLEN), O_RDONLY, 0)) != -1);
-	ATF_REQUIRE(faccessat(dfd, BASEFILE, F_OK, 0) == -1);
-	ATF_REQUIRE(close(dfd) == 0);
+    ATF_REQUIRE((dfd = open(getcwd(cwd, MAXPATHLEN), O_RDONLY, 0)) != -1);
+    ATF_REQUIRE(faccessat(dfd, BASEFILE, F_OK, 0) == -1);
+    ATF_REQUIRE(close(dfd) == 0);
 }
 
 ATF_TC(faccessat_fderr3);
 ATF_TC_HEAD(faccessat_fderr3, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "See that faccessat fails with fd as -1");
+    atf_tc_set_md_var(tc, "descr", "See that faccessat fails with fd as -1");
 }
 ATF_TC_BODY(faccessat_fderr3, tc)
 {
-	int fd;
+    int fd;
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
-	ATF_REQUIRE(close(fd) == 0);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
+    ATF_REQUIRE(close(fd) == 0);
 
-	ATF_REQUIRE(faccessat(-1, FILE, F_OK, 0) == -1);
+    ATF_REQUIRE(faccessat(-1, FILE, F_OK, 0) == -1);
 }
 
 ATF_TC(faccessat_fdlink);
 ATF_TC_HEAD(faccessat_fdlink, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "See that faccessat works on symlink");
+    atf_tc_set_md_var(tc, "descr", "See that faccessat works on symlink");
 }
 ATF_TC_BODY(faccessat_fdlink, tc)
 {
-	int dfd;
+    int dfd;
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE(symlink(FILE, LINK) == 0); /* NB: FILE does not exists */
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE(symlink(FILE, LINK) == 0); /* NB: FILE does not exists */
 
-	ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
+    ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
 
-	ATF_REQUIRE(faccessat(dfd, BASELINK, F_OK, 0) == -1);
-	ATF_REQUIRE(errno == ENOENT);
+    ATF_REQUIRE(faccessat(dfd, BASELINK, F_OK, 0) == -1);
+    ATF_REQUIRE(errno == ENOENT);
 
-	ATF_REQUIRE(faccessat(dfd, BASELINK, F_OK, AT_SYMLINK_NOFOLLOW) == 0);
+    ATF_REQUIRE(faccessat(dfd, BASELINK, F_OK, AT_SYMLINK_NOFOLLOW) == 0);
 
-	ATF_REQUIRE(close(dfd) == 0);
+    ATF_REQUIRE(close(dfd) == 0);
 }
 
 ATF_TC(faccessat_abs);
 ATF_TC_HEAD(faccessat_abs, tc)
 {
-	atf_tc_set_md_var(tc,"descr", "See that faccessat works with invalid fd when absolute path is provided.");
+    atf_tc_set_md_var(tc,"descr", "See that faccessat works with invalid fd when absolute path is provided.");
 }
 ATF_TC_BODY(faccessat_abs, tc)
 {
-	int fd;
-	char cwd[MAXPATHLEN];
-	char abs_path[MAXPATHLEN];
+    int fd;
+    char cwd[MAXPATHLEN-100];
+    char abs_path[MAXPATHLEN];
 
-	ATF_REQUIRE(mkdir(DIR, 0755) == 0);
-	ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
-	ATF_REQUIRE(close(fd) == 0);
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
+    ATF_REQUIRE(close(fd) == 0);
 
-	ATF_REQUIRE(getcwd(cwd, MAXPATHLEN) != -1);
-	snprintf(abs_path,sizeof(abs_path),"%s/%s",cwd,FILE);
-	ATF_REQUIRE(printf("Abs path: %s\n",abs_path)!=-1);
+    ATF_REQUIRE(getcwd(cwd, MAXPATHLEN));
+    snprintf(abs_path,sizeof(abs_path),"%s/%s",cwd,FILE);
+    //printf("Absolute path: %s\n",abs_path);
+    ATF_REQUIRE(faccessat(-1, abs_path, W_OK, 0) == 0);
+
+}
+
+ATF_TC(faccessat_abs_fddir);
+ATF_TC_HEAD(faccessat_abs_fddir, tc)
+{
+    atf_tc_set_md_var(tc,"descr", "See that faccessat works with fd of directory when absolute path is provided.");
+}
+ATF_TC_BODY(faccessat_abs_fddir, tc)
+{
+    int dfd;
+    char cwd[MAXPATHLEN-100];
+    char abs_path[MAXPATHLEN];
+
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+    ATF_REQUIRE((dfd = open(DIR, O_RDONLY, 0)) != -1);
+    ATF_REQUIRE(close(dfd) == 0);
+
+    ATF_REQUIRE(getcwd(cwd, MAXPATHLEN));
+    snprintf(abs_path,sizeof(abs_path),"%s/%s",cwd,DIR);
+    //printf("Absolute path: %s\n",abs_path);
+    ATF_REQUIRE(faccessat(dfd, abs_path, W_OK, 0) == 0);
+
+}
+
+ATF_TC(faccessat_abs_fdcwd);
+ATF_TC_HEAD(faccessat_abs_fdcwd, tc)
+{
+    atf_tc_set_md_var(tc,"descr", "See that faccessat works with fd of current directory when absolute path is provided.");
+}
+ATF_TC_BODY(faccessat_abs_fdcwd, tc)
+{
+    char cwd[MAXPATHLEN-100];
+    char abs_path[MAXPATHLEN];
+
+    ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+
+    ATF_REQUIRE(getcwd(cwd, MAXPATHLEN));
+    snprintf(abs_path,sizeof(abs_path),"%s/%s",cwd,DIR);
+    //printf("Absolute path: %s\n",abs_path);
+    ATF_REQUIRE(faccessat(AT_FDCWD, abs_path, W_OK, 0) == 0);
 
 }
 
 ATF_TP_ADD_TCS(tp)
 {
 
-	ATF_TP_ADD_TC(tp, faccessat_fd);
-	ATF_TP_ADD_TC(tp, faccessat_fdcwd);
-	ATF_TP_ADD_TC(tp, faccessat_fdcwderr);
-	ATF_TP_ADD_TC(tp, faccessat_fderr1);
-	ATF_TP_ADD_TC(tp, faccessat_fderr2);
-	ATF_TP_ADD_TC(tp, faccessat_fderr3);
-	ATF_TP_ADD_TC(tp, faccessat_fdlink);
-	ATF_TP_ADD_TC(tp, faccessat_abs);
+    ATF_TP_ADD_TC(tp, faccessat_fd);
+    ATF_TP_ADD_TC(tp, faccessat_fdcwd);
+    ATF_TP_ADD_TC(tp, faccessat_fdcwderr);
+    ATF_TP_ADD_TC(tp, faccessat_fderr1);
+    ATF_TP_ADD_TC(tp, faccessat_fderr2);
+    ATF_TP_ADD_TC(tp, faccessat_fderr3);
+    ATF_TP_ADD_TC(tp, faccessat_fdlink);
+    ATF_TP_ADD_TC(tp, faccessat_abs);
+    ATF_TP_ADD_TC(tp, faccessat_abs_fddir);
+    ATF_TP_ADD_TC(tp, faccessat_abs_fdcwd);
 
-	return atf_no_error();
+
+
+    return atf_no_error();
 }
