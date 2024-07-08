@@ -183,6 +183,33 @@ ATF_TC_BODY(fchmodat_fdlink, tc)
 	ATF_REQUIRE(st.st_mode = 0600);
 }
 
+ATF_TC(fchmodat_abs);
+ATF_TC_HEAD(fchmodat_abs, tc)
+{
+        atf_tc_set_md_var(tc,"descr", "See that fchmodat works with absolute path");
+}
+ATF_TC_BODY(fchmodat_abs, tc)
+{
+        struct stat st;
+        int fd;
+        char cwd[MAXPATHLEN-100];
+        char abs_path[MAXPATHLEN];
+
+        ATF_REQUIRE(mkdir(DIR, 0755) == 0);
+        ATF_REQUIRE((fd = open(FILE, O_CREAT|O_RDWR, 0644)) != -1);
+        ATF_REQUIRE(close(fd) == 0);
+
+        ATF_REQUIRE(getcwd(cwd, MAXPATHLEN));
+        snprintf(abs_path,sizeof(abs_path), "%s/%s", cwd, FILE);
+        printf("Absolute path: %s\n",abs_path);
+
+        ATF_REQUIRE(fchmodat(-1, abs_path, 0444, 0) == 0);
+        ATF_REQUIRE(stat(abs_path, &st) == 0);
+        printf("File mode: %o\n", st.st_mode & 0777);
+//	ATF_REQUIRE(st.st_mode = 0600);
+        ATF_REQUIRE((st.st_mode & 0777) == 0444);
+}
+
 ATF_TP_ADD_TCS(tp)
 {
 
@@ -193,6 +220,8 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, fchmodat_fderr2);
 	ATF_TP_ADD_TC(tp, fchmodat_fderr3);
 	ATF_TP_ADD_TC(tp, fchmodat_fdlink);
+	ATF_TP_ADD_TC(tp, fchmodat_abs);
+
 
 	return atf_no_error();
 }
