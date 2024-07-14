@@ -744,6 +744,9 @@
 /* syscall: "memfd_create" ret: "int" args: "const char *" "unsigned int" */
 #define	LINUX_SYS_memfd_create	319
 
+/* syscall: "copy_file_range" ret: "ssize_t" args: "int" "off_t *" "int" "off_t *" "size_t" "unsigned int" */
+#define	LINUX_SYS_copy_file_range	326
+
 /* syscall: "statx" ret: "int" args: "int" "const char *" "int" "unsigned int" "struct linux_statx *" */
 #define	LINUX_SYS_statx	332
 

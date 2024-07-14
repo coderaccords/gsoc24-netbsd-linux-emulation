@@ -919,6 +919,30 @@ linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap, regi
 	return error;
 }
 
+int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_args *uap, register_t *retval)
+{
+	/* {
+		syscallarg(int) fd_in;
+		syscallarg(unsigned long) off_in;
+		syscallarg(int) fd_out;
+		syscallarg(unsigned long) off_out;
+		syscallarg(size_t) len;
+		syscallarg(unsigned int) flags;
+	} */
+	// struct sys_copy_file_range_args ua;
+
+	// SCARG(&ua, fd_in) = SCARG(uap, fd_in);
+	// SCARG(&ua, off_in) = SCARG(uap, off_in);
+	// SCARG(&ua, fd_out) = SCARG(uap, fd_out);
+	// SCARG(&ua, off_out) = SCARG(uap, off_out);
+	// SCARG(&ua, len) = SCARG(uap, len);
+	// SCARG(&ua, flags) = SCARG(uap, flags);
+
+	printf("Calling sys_copy_file_range\n");
+	return 0;
+	// return sys_copy_file_range(l, &ua, retval);
+}
+
 
 #define LINUX_NOT_SUPPORTED(fun) \
 int \

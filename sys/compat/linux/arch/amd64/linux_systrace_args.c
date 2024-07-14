@@ -2035,6 +2035,18 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 2;
 		break;
 	}
+	/* linux_sys_copy_file_range */
+	case 326: {
+		const struct linux_sys_copy_file_range_args *p = params;
+		iarg[0] = SCARG(p, fd_in); /* int */
+		uarg[1] = (intptr_t) SCARG(p, off_in); /* off_t * */
+		iarg[2] = SCARG(p, fd_out); /* int */
+		uarg[3] = (intptr_t) SCARG(p, off_out); /* off_t * */
+		uarg[4] = SCARG(p, len); /* size_t */
+		uarg[5] = SCARG(p, flags); /* unsigned int */
+		*n_args = 6;
+		break;
+	}
 	/* linux_sys_statx */
 	case 332: {
 		const struct linux_sys_statx_args *p = params;
@@ -5484,6 +5496,31 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_copy_file_range */
+	case 326:
+		switch(ndx) {
+		case 0:
+			p = "int";
+			break;
+		case 1:
+			p = "off_t *";
+			break;
+		case 2:
+			p = "int";
+			break;
+		case 3:
+			p = "off_t *";
+			break;
+		case 4:
+			p = "size_t";
+			break;
+		case 5:
+			p = "unsigned int";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_statx */
 	case 332:
 		switch(ndx) {
@@ -6735,6 +6772,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 	case 319:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
+		break;
+	/* linux_sys_copy_file_range */
+	case 326:
+		if (ndx == 0 || ndx == 1)
+			p = "ssize_t";
 		break;
 	/* linux_sys_statx */
 	case 332:
