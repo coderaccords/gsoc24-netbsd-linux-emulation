@@ -593,7 +593,9 @@
 323	UNIMPL		userfaultfd
 324	UNIMPL		membarrier
 325	UNIMPL		mlock2
-326	UNIMPL		copy_file_range
+326	STD		{ ssize_t|linux_sys||copy_file_range(int fd_in, \
+			off_t * off_in, int fd_out, off_t * off_out, \
+			size_t len, unsigned int flags); }
 327	UNIMPL		preadv2
 328	UNIMPL		pwritev2
 329	UNIMPL		pkey_mprotect
