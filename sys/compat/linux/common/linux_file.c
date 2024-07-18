@@ -37,6 +37,8 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: linux_file.c,v 1.123 2023/07/10 02:31:55 christos Exp $");
 
+// #define _LARGEFILE64_SOURCE
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/namei.h>
@@ -919,6 +921,134 @@ linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap, regi
 	return error;
 }
 
+// COPY_FILE_RANGE (int infd, __off64_t *pinoff,
+//                  int outfd, __off64_t *poutoff,
+//                  size_t length, unsigned int flags)
+// {
+//   if (flags != 0)
+//     {
+//       __set_errno (EINVAL);
+//       return -1;
+//     }
+
+//   {
+//     struct stat64 instat;
+//     struct stat64 outstat;
+//     if (fstat64 (infd, &instat) != 0 || fstat64 (outfd, &outstat) != 0)
+//       return -1;
+//     if (S_ISDIR (instat.st_mode) || S_ISDIR (outstat.st_mode))
+//       {
+//         __set_errno (EISDIR);
+//         return -1;
+//       }
+//     if (!S_ISREG (instat.st_mode) || !S_ISREG (outstat.st_mode))
+//       {
+//         /* We need a regular input file so that the we can seek
+//            backwards in case of a write failure.  */
+//         __set_errno (EINVAL);
+//         return -1;
+//       }
+//     if (instat.st_dev != outstat.st_dev)
+//       {
+//         /* Cross-device copies are not supported.  */
+//         __set_errno (EXDEV);
+//         return -1;
+//       }
+//   }
+
+//   /* The output descriptor must not have O_APPEND set.  */
+//   {
+//     int flags = __fcntl (outfd, F_GETFL);
+//     if (flags & O_APPEND)
+//       {
+//         __set_errno (EBADF);
+//         return -1;
+//       }
+//   }
+
+//   /* Avoid an overflow in the result.  */
+//   if (length > SSIZE_MAX)
+//     length = SSIZE_MAX;
+
+//   /* Main copying loop.  The buffer size is arbitrary and is a
+//      trade-off between stack size consumption, cache usage, and
+//      amortization of system call overhead.  */
+//   size_t copied = 0;
+//   char buf[8192];
+//   while (length > 0)
+//     {
+//       size_t to_read = length;
+//       if (to_read > sizeof (buf))
+//         to_read = sizeof (buf);
+
+//       /* Fill the buffer.  */
+//       ssize_t read_count;
+//       if (pinoff == NULL)
+//         read_count = read (infd, buf, to_read);
+//       else
+//         read_count = __libc_pread64 (infd, buf, to_read, *pinoff);
+//       if (read_count == 0)
+//         /* End of file reached prematurely.  */
+//         return copied;
+//       if (read_count < 0)
+//         {
+//           if (copied > 0)
+//             /* Report the number of bytes copied so far.  */
+//             return copied;
+//           return -1;
+//         }
+//       if (pinoff != NULL)
+//         *pinoff += read_count;
+
+//       /* Write the buffer part which was read to the destination.  */
+//       char *end = buf + read_count;
+//       for (char *p = buf; p < end; )
+//         {
+//           ssize_t write_count;
+//           if (poutoff == NULL)
+//             write_count = write (outfd, p, end - p);
+//           else
+//             write_count = __libc_pwrite64 (outfd, p, end - p, *poutoff);
+//           if (write_count < 0)
+//             {
+//               /* Adjust the input read position to match what we have
+//                  written, so that the caller can pick up after the
+//                  error.  */
+//               size_t written = p - buf;
+//               /* NB: This needs to be signed so that we can form the
+//                  negative value below.  */
+//               ssize_t overread = read_count - written;
+//               if (pinoff == NULL)
+//                 {
+//                   if (overread > 0)
+//                     {
+//                       /* We are on an error recovery path, so we
+//                          cannot deal with failure here.  */
+//                       int save_errno = errno;
+//                       (void) __libc_lseek64 (infd, -overread, SEEK_CUR);
+//                       __set_errno (save_errno);
+//                     }
+//                 }
+//               else /* pinoff != NULL */
+//                 *pinoff -= overread;
+
+//               if (copied + written > 0)
+//                 /* Report the number of bytes copied so far.  */
+//                 return copied + written;
+//               return -1;
+//             }
+//           p += write_count;
+//           if (poutoff != NULL)
+//             *poutoff += write_count;
+//         } /* Write loop.  */
+
+//       copied += read_count;
+//       length -= read_count;
+//     }
+//   return copied;
+// }
+
+
 int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_args *uap, register_t *retval)
 {
 	/* {
@@ -929,18 +1059,70 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 		syscallarg(size_t) len;
 		syscallarg(unsigned int) flags;
 	} */
-	// struct sys_copy_file_range_args ua;
+	// u_int cpu_id, node_id;
+	int fd_in, fd_out;
+	file_t *fp_in, *fp_out;
+	// off_t off_in, off_out;
+	// size_t len;
+	int error = 0;
+	// struct stat stat_in, stat_out;
+	// struct vnode *vp_in, *vp_out;
+	struct vattr vattr_in, vattr_out;
 
-	// SCARG(&ua, fd_in) = SCARG(uap, fd_in);
-	// SCARG(&ua, off_in) = SCARG(uap, off_in);
-	// SCARG(&ua, fd_out) = SCARG(uap, fd_out);
-	// SCARG(&ua, off_out) = SCARG(uap, off_out);
-	// SCARG(&ua, len) = SCARG(uap, len);
-	// SCARG(&ua, flags) = SCARG(uap, flags);
+
+	fd_in = SCARG(uap, fd_in);
+	fd_out = SCARG(uap, fd_out);
 
 	printf("Calling sys_copy_file_range\n");
-	return 0;
-	// return sys_copy_file_range(l, &ua, retval);
+	// Check if flag value is 0 as expected
+	if(SCARG(uap, flags) != 0) {
+		printf("copy_file_range unsupported flags 0x%x\n", SCARG(uap, flags));
+		return EINVAL;
+	}
+
+	// get vnode of input and output fds and check if they are regular files
+	if ((error = fd_getvnode(fd_in, &fp_in)) != 0 || (error = fd_getvnode(fd_out, &fp_out)) != 0) {
+		printf("copy_file_range: invalid file descriptor\n");
+		return error;
+	}
+
+	// Check if output file has O_APPEND flag set
+	if (fp_out->f_flag & O_APPEND) {
+		printf("copy_file_range: output file has O_APPEND flag set\n");
+		return EBADF;
+	}
+	// check if input file can be read and output file can be written
+	// if ((fp_in->f_flag & O_READ) == 0 || (fp_out->f_flag & FWRITE) == 0) {
+	// 	printf("copy_file_range: input file can't be read or output file can't be written\n");
+	// 	return EBADF;
+	// }
+
+	// Get attributes of input and output files
+	VOP_GETATTR(fp_in->f_vnode, &vattr_in, l->l_cred);
+	VOP_GETATTR(fp_out->f_vnode, &vattr_out, l->l_cred);
+
+	// Check if input and output files are directories
+	if (vattr_in.va_type == VDIR || vattr_out.va_type == VDIR) {
+		printf("copy_file_range: input or output is a directory\n");
+		return EISDIR;
+	}
+
+	// Check if input and output files are regular files
+	if (vattr_in.va_type != VREG || vattr_out.va_type != VREG) {
+		printf("copy_file_range: input or output is not a regular file\n");
+		return EINVAL;
+	}
+
+	// Check if input and output files are on the same device
+	if (vattr_in.va_fsid != vattr_out.va_fsid) {
+		printf("copy_file_range: input and output files are on different devices\n");
+		return EXDEV;
+	}
+
+	// Check if output file has O_APPEND flag set
+	
+
+	return error;
 }
 
 
