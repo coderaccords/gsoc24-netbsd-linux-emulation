@@ -521,7 +521,8 @@
 			    linux_sigset_t *sigset); }
 303	UNIMPL		unshare
 304	UNIMPL		splice
-305	UNIMPL		sync_file_range
+305	STD			{ int|linux_sys||sync_file_range(int fd, \
+				off_t offset, off_t nbytes, unsigned int flags); }
 306	UNIMPL		tee
 307	UNIMPL		vmsplice
 308	UNIMPL		move_pages

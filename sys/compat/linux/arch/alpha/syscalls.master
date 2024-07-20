@@ -761,7 +761,8 @@
 467	NOARGS		{ int|sys||__futex_get_robust_list(lwpid_t lwpid, \
 			    void **headp, size_t *lenp); }
 468	UNIMPL		splice
-469	UNIMPL		sync_file_range
+469	STD			{ int|linux_sys||sync_file_range(int fd, \
+				off_t offset, off_t nbytes, unsigned int flags); }
 470	UNIMPL		tee
 471	UNIMPL		vmsplice
 472	UNIMPL		move_pages

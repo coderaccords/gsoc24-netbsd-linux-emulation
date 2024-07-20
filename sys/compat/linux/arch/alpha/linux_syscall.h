@@ -735,6 +735,9 @@
 /* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "void **" "size_t *" */
 #define	LINUX_SYS___futex_get_robust_list	467
 
+/* syscall: "sync_file_range" ret: "int" args: "int" "off_t" "off_t" "unsigned int" */
+#define	LINUX_SYS_sync_file_range	469
+
 /* syscall: "getcpu" ret: "int" args: "unsigned int *" "unsigned int *" "struct linux_getcpu_cache *" */
 #define	LINUX_SYS_getcpu	473
 

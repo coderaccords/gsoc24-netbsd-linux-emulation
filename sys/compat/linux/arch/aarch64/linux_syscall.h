@@ -207,6 +207,9 @@
 /* syscall: "fdatasync" ret: "int" args: "int" */
 #define	LINUX_SYS_fdatasync	83
 
+/* syscall: "sync_file_range" ret: "int" args: "int" "off_t" "off_t" "unsigned int" */
+#define	LINUX_SYS_sync_file_range	84
+
 /* syscall: "timerfd_create" ret: "int" args: "clockid_t" "int" */
 #define	LINUX_SYS_timerfd_create	85
 

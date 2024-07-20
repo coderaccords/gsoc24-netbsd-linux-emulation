@@ -55,6 +55,14 @@ struct stat;
 #define LINUX_AT_NO_AUTOMOUNT		0x0800
 #define LINUX_AT_EMPTY_PATH		0x1000
 
+
+/*
+ * sync_file_range flags
+ */
+#define	LINUX_SYNC_FILE_RANGE_WAIT_BEFORE	1
+#define	LINUX_SYNC_FILE_RANGE_WRITE		2
+#define	LINUX_SYNC_FILE_RANGE_WAIT_AFTER	4
+
 #ifdef _KERNEL
 int linux_to_bsd_ioflags(int);
 int linux_to_bsd_atflags(int);

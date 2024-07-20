@@ -124,7 +124,7 @@ const char *const linux_syscallnames[] = {
 	/*  81 */	"sync",
 	/*  82 */	"fsync",
 	/*  83 */	"fdatasync",
-	/*  84 */	"#84 (unimplemented sync_file_range)",
+	/*  84 */	"sync_file_range",
 	/*  85 */	"timerfd_create",
 	/*  86 */	"timerfd_settime",
 	/*  87 */	"timerfd_gettime",
@@ -662,7 +662,7 @@ const char *const altlinux_syscallnames[] = {
 	/*  81 */	NULL, /* sync */
 	/*  82 */	NULL, /* fsync */
 	/*  83 */	NULL, /* fdatasync */
-	/*  84 */	NULL, /* unimplemented sync_file_range */
+	/*  84 */	NULL, /* sync_file_range */
 	/*  85 */	NULL, /* timerfd_create */
 	/*  86 */	NULL, /* timerfd_settime */
 	/*  87 */	NULL, /* timerfd_gettime */

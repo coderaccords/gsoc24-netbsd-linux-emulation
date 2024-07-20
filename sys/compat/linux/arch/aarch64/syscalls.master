@@ -201,7 +201,8 @@
 81	NOARGS		{ int|sys||sync(void); }
 82	NOARGS		{ int|sys||fsync(int fd); }
 83	STD		{ int|linux_sys||fdatasync(int fd); }
-84	UNIMPL		sync_file_range
+84	STD			{ int|linux_sys||sync_file_range(int fd, \
+				off_t offset, off_t nbytes, unsigned int flags); }
 85	STD		{ int|linux_sys||timerfd_create(clockid_t clock_id, \
 			    int flags); }
 86	STD		{ int|linux_sys||timerfd_settime(int fd, int flags, \

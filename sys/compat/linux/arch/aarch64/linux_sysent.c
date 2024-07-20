@@ -407,8 +407,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = (sy_call_t *)linux_sys_fdatasync
 	},		/* 83 = fdatasync */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 84 = filler */
+		ns(struct linux_sys_sync_file_range_args),
+		.sy_flags = SYCALL_NARGS64_VAL(2) | SYCALL_ARG2_64 | SYCALL_ARG1_64,
+		.sy_call = (sy_call_t *)linux_sys_sync_file_range
+	},		/* 84 = sync_file_range */
 	{
 		ns(struct linux_sys_timerfd_create_args),
 		.sy_call = (sy_call_t *)linux_sys_timerfd_create

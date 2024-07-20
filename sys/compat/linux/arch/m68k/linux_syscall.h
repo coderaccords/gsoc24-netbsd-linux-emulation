@@ -741,6 +741,9 @@
 /* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "void **" "size_t *" */
 #define	LINUX_SYS___futex_get_robust_list	305
 
+/* syscall: "sync_file_range" ret: "int" args: "int" "off_t" "off_t" "unsigned int" */
+#define	LINUX_SYS_sync_file_range	307
+
 /* syscall: "sched_setaffinity" ret: "int" args: "pid_t" "unsigned int" "unsigned long *" */
 #define	LINUX_SYS_sched_setaffinity	311
 

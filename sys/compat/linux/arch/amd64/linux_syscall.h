@@ -681,6 +681,9 @@
 /* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "void **" "size_t *" */
 #define	LINUX_SYS___futex_get_robust_list	274
 
+/* syscall: "sync_file_range" ret: "int" args: "int" "off_t" "off_t" "unsigned int" */
+#define	LINUX_SYS_sync_file_range	277
+
 /* syscall: "utimensat" ret: "int" args: "int" "const char *" "struct linux_timespec *" "int" */
 #define	LINUX_SYS_utimensat	280
 

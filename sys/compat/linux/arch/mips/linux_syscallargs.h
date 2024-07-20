@@ -1181,6 +1181,14 @@ struct linux_sys_ppoll_args {
 };
 check_syscall_args(linux_sys_ppoll)
 
+struct linux_sys_sync_file_range_args {
+	syscallarg(int) fd;
+	syscallarg(off_t) offset;
+	syscallarg(off_t) nbytes;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_sync_file_range)
+
 struct sys___futex_set_robust_list_args;
 
 struct sys___futex_get_robust_list_args;
@@ -1822,6 +1830,8 @@ int	linux_sys_faccessat(struct lwp *, const struct linux_sys_faccessat_args *, r
 int	linux_sys_pselect6(struct lwp *, const struct linux_sys_pselect6_args *, register_t *);
 
 int	linux_sys_ppoll(struct lwp *, const struct linux_sys_ppoll_args *, register_t *);
+
+int	linux_sys_sync_file_range(struct lwp *, const struct linux_sys_sync_file_range_args *, register_t *);
 
 int	sys___futex_set_robust_list(struct lwp *, const struct sys___futex_set_robust_list_args *, register_t *);
 

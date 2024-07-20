@@ -712,6 +712,9 @@
 /* syscall: "ppoll" ret: "int" args: "struct pollfd *" "u_int" "struct linux_timespec *" "linux_sigset_t *" */
 #define	LINUX_SYS_ppoll	302
 
+/* syscall: "sync_file_range" ret: "int" args: "int" "off_t" "off_t" "unsigned int" */
+#define	LINUX_SYS_sync_file_range	305
+
 /* syscall: "__futex_set_robust_list" ret: "int" args: "void *" "size_t" */
 #define	LINUX_SYS___futex_set_robust_list	309
 

@@ -400,6 +400,14 @@ struct linux_sys_fdatasync_args {
 };
 check_syscall_args(linux_sys_fdatasync)
 
+struct linux_sys_sync_file_range_args {
+	syscallarg(int) fd;
+	syscallarg(off_t) offset;
+	syscallarg(off_t) nbytes;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_sync_file_range)
+
 struct linux_sys_timerfd_create_args {
 	syscallarg(clockid_t) clock_id;
 	syscallarg(int) flags;
@@ -1210,6 +1218,8 @@ int	sys_sync(struct lwp *, const void *, register_t *);
 int	sys_fsync(struct lwp *, const struct sys_fsync_args *, register_t *);
 
 int	linux_sys_fdatasync(struct lwp *, const struct linux_sys_fdatasync_args *, register_t *);
+
+int	linux_sys_sync_file_range(struct lwp *, const struct linux_sys_sync_file_range_args *, register_t *);
 
 int	linux_sys_timerfd_create(struct lwp *, const struct linux_sys_timerfd_create_args *, register_t *);
 

@@ -73,6 +73,9 @@ static int bsd_to_linux_ioflags(int);
 static void bsd_to_linux_stat(struct stat *, struct linux_stat *);
 #endif
 
+#define	roundup_PAGE(x)	((((x)+((PAGE_SIZE)-1))/(PAGE_SIZE))*(PAGE_SIZE))
+#define	rounddown_PAGE(x)	(((x)/(PAGE_SIZE))*(PAGE_SIZE))
+
 conv_linux_flock(linux, flock)
 
 /*
@@ -918,6 +921,47 @@ linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap, regi
 	
 	return error;
 }
+
+
+int	
+linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args *uap, register_t *retval)
+{
+	/* {
+		syscallarg(int) fd;
+		syscallarg(off_t) offset;
+		syscallarg(off_t) nbytes;
+		syscallarg(unsigned int) flags;
+	} */
+	
+	struct sys_fsync_range_args ua;
+
+	if (SCARG(uap, offset) < 0 || SCARG(uap, nbytes) < 0 ||
+	    (SCARG(uap, flags) & ~(LINUX_SYNC_FILE_RANGE_WAIT_BEFORE |
+	    LINUX_SYNC_FILE_RANGE_WRITE |
+	    LINUX_SYNC_FILE_RANGE_WAIT_AFTER)) != 0) {
+		return (EINVAL);
+	}
+
+	// Fill ua with uap
+	SCARG(&ua, fd) = SCARG(uap, fd);
+	SCARG(&ua, start) = SCARG(uap, offset);
+	SCARG(&ua, length) = SCARG(uap, nbytes);
+	SCARG(&ua, flags) = SCARG(uap, flags);
+
+	// To-Do: Manage page boundaries for offset and length
+	// Round down offset to page boundary
+	SCARG(&ua, start) = rounddown_PAGE(SCARG(uap, offset));
+	if(SCARG(&ua, length)!=0)
+	{
+		// Round up length to nbytes+offset to page boundary
+		SCARG(&ua, length) = roundup_PAGE(SCARG(uap, nbytes) + SCARG(uap, offset)) - SCARG(&ua, start);	
+	}
+	
+	return sys_fsync_range(l, &ua, retval);
+
+
+}
+
 
 
 #define LINUX_NOT_SUPPORTED(fun) \

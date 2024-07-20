@@ -528,7 +528,7 @@ const char *const linux_syscallnames[] = {
 	/* 466 */	"__futex_set_robust_list",
 	/* 467 */	"__futex_get_robust_list",
 	/* 468 */	"#468 (unimplemented splice)",
-	/* 469 */	"#469 (unimplemented sync_file_range)",
+	/* 469 */	"sync_file_range",
 	/* 470 */	"#470 (unimplemented tee)",
 	/* 471 */	"#471 (unimplemented vmsplice)",
 	/* 472 */	"#472 (unimplemented move_pages)",
@@ -1581,7 +1581,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 466 */	NULL, /* __futex_set_robust_list */
 	/* 467 */	NULL, /* __futex_get_robust_list */
 	/* 468 */	NULL, /* unimplemented splice */
-	/* 469 */	NULL, /* unimplemented sync_file_range */
+	/* 469 */	NULL, /* sync_file_range */
 	/* 470 */	NULL, /* unimplemented tee */
 	/* 471 */	NULL, /* unimplemented vmsplice */
 	/* 472 */	NULL, /* unimplemented move_pages */

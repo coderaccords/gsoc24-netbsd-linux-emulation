@@ -521,7 +521,8 @@
 			    void **headp, size_t *lenp); }
 275	UNIMPL		splice
 276	UNIMPL		tee
-277	UNIMPL		sync_file_range
+277	STD			{ int|linux_sys||sync_file_range(int fd, \
+				off_t offset, off_t nbytes, unsigned int flags); }
 278	UNIMPL		vmsplice
 279	UNIMPL		move_pages
 280	STD		{ int|linux_sys||utimensat(int fd, const char *path, \

@@ -1186,6 +1186,14 @@ struct sys___futex_set_robust_list_args;
 
 struct sys___futex_get_robust_list_args;
 
+struct linux_sys_sync_file_range_args {
+	syscallarg(int) fd;
+	syscallarg(off_t) offset;
+	syscallarg(off_t) nbytes;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_sync_file_range)
+
 struct linux_sys_getcpu_args {
 	syscallarg(unsigned int *) cpu;
 	syscallarg(unsigned int *) node;
@@ -1820,6 +1828,8 @@ int	linux_sys_ppoll(struct lwp *, const struct linux_sys_ppoll_args *, register_
 int	sys___futex_set_robust_list(struct lwp *, const struct sys___futex_set_robust_list_args *, register_t *);
 
 int	sys___futex_get_robust_list(struct lwp *, const struct sys___futex_get_robust_list_args *, register_t *);
+
+int	linux_sys_sync_file_range(struct lwp *, const struct linux_sys_sync_file_range_args *, register_t *);
 
 int	linux_sys_getcpu(struct lwp *, const struct linux_sys_getcpu_args *, register_t *);
 

@@ -335,7 +335,7 @@ const char *const linux_syscallnames[] = {
 	/* 302 */	"ppoll",
 	/* 303 */	"#303 (unimplemented unshare)",
 	/* 304 */	"#304 (unimplemented splice)",
-	/* 305 */	"#305 (unimplemented sync_file_range)",
+	/* 305 */	"sync_file_range",
 	/* 306 */	"#306 (unimplemented tee)",
 	/* 307 */	"#307 (unimplemented vmsplice)",
 	/* 308 */	"#308 (unimplemented move_pages)",
@@ -852,7 +852,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 302 */	NULL, /* ppoll */
 	/* 303 */	NULL, /* unimplemented unshare */
 	/* 304 */	NULL, /* unimplemented splice */
-	/* 305 */	NULL, /* unimplemented sync_file_range */
+	/* 305 */	NULL, /* sync_file_range */
 	/* 306 */	NULL, /* unimplemented tee */
 	/* 307 */	NULL, /* unimplemented vmsplice */
 	/* 308 */	NULL, /* unimplemented move_pages */
