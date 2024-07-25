@@ -1702,6 +1702,13 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 4;
 		break;
 	}
+	/* linux_sys_syncfs */
+	case 267: {
+		const struct linux_sys_syncfs_args *p = params;
+		iarg[0] = SCARG(p, fd); /* int */
+		*n_args = 1;
+		break;
+	}
 	/* linux_sys_sendmmsg */
 	case 269: {
 		const struct linux_sys_sendmmsg_args *p = params;
@@ -4658,6 +4665,16 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_syncfs */
+	case 267:
+		switch(ndx) {
+		case 0:
+			p = "int";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_sendmmsg */
 	case 269:
 		switch(ndx) {
@@ -5754,6 +5771,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_sys_prlimit64 */
 	case 261:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_syncfs */
+	case 267:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

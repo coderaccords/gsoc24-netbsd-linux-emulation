@@ -1036,6 +1036,11 @@ struct linux_sys_prlimit64_args {
 };
 check_syscall_args(linux_sys_prlimit64)
 
+struct linux_sys_syncfs_args {
+	syscallarg(int) fd;
+};
+check_syscall_args(linux_sys_syncfs)
+
 struct linux_sys_sendmmsg_args {
 	syscallarg(int) s;
 	syscallarg(struct linux_mmsghdr *) msgvec;
@@ -1491,6 +1496,8 @@ int	linux_sys_recvmmsg(struct lwp *, const struct linux_sys_recvmmsg_args *, reg
 int	linux_sys_wait4(struct lwp *, const struct linux_sys_wait4_args *, register_t *);
 
 int	linux_sys_prlimit64(struct lwp *, const struct linux_sys_prlimit64_args *, register_t *);
+
+int	linux_sys_syncfs(struct lwp *, const struct linux_sys_syncfs_args *, register_t *);
 
 int	linux_sys_sendmmsg(struct lwp *, const struct linux_sys_sendmmsg_args *, register_t *);
 

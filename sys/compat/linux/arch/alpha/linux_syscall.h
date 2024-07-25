@@ -789,6 +789,9 @@
 /* syscall: "prlimit64" ret: "int" args: "pid_t" "int" "struct rlimit *" "struct rlimit *" */
 #define	LINUX_SYS_prlimit64	496
 
+/* syscall: "syncfs" ret: "int" args: "int" */
+#define	LINUX_SYS_syncfs	500
+
 /* syscall: "accept4" ret: "int" args: "int" "struct osockaddr *" "int *" "int" */
 #define	LINUX_SYS_accept4	502
 

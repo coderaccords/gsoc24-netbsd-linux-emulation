@@ -1207,8 +1207,9 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 266 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 267 = filler */
+		ns(struct linux_sys_syncfs_args),
+		.sy_call = (sy_call_t *)linux_sys_syncfs
+	},		/* 267 = syncfs */
 	{
 		.sy_call = linux_sys_nosys,
 	},		/* 268 = filler */

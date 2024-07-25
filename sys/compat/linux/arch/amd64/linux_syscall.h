@@ -735,6 +735,9 @@
 /* syscall: "prlimit64" ret: "int" args: "pid_t" "int" "struct rlimit *" "struct rlimit *" */
 #define	LINUX_SYS_prlimit64	302
 
+/* syscall: "syncfs" ret: "int" args: "int" */
+#define	LINUX_SYS_syncfs	306
+
 /* syscall: "sendmmsg" ret: "int" args: "int" "struct linux_mmsghdr *" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_sendmmsg	307
 

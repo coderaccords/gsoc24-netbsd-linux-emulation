@@ -1563,8 +1563,9 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 372 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 373 = filler */
+		ns(struct linux_sys_syncfs_args),
+		.sy_call = (sy_call_t *)linux_sys_syncfs
+	},		/* 373 = syncfs */
 	{
 		ns(struct linux_sys_sendmmsg_args),
 		.sy_flags = SYCALL_ARG_PTR,

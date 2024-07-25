@@ -374,7 +374,7 @@ const char *const linux_syscallnames[] = {
 	/* 303 */	"#303 (unimplemented name_to_handle_at)",
 	/* 304 */	"#304 (unimplemented open_by_handle_at)",
 	/* 305 */	"#305 (unimplemented clock_adjtime)",
-	/* 306 */	"#306 (unimplemented syncfs)",
+	/* 306 */	"syncfs",
 	/* 307 */	"sendmmsg",
 	/* 308 */	"#308 (unimplemented setns)",
 	/* 309 */	"getcpu",
@@ -918,7 +918,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 303 */	NULL, /* unimplemented name_to_handle_at */
 	/* 304 */	NULL, /* unimplemented open_by_handle_at */
 	/* 305 */	NULL, /* unimplemented clock_adjtime */
-	/* 306 */	NULL, /* unimplemented syncfs */
+	/* 306 */	NULL, /* syncfs */
 	/* 307 */	NULL, /* sendmmsg */
 	/* 308 */	NULL, /* unimplemented setns */
 	/* 309 */	NULL, /* getcpu */

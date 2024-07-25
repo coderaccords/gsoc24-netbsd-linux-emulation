@@ -798,6 +798,9 @@
 /* syscall: "prlimit64" ret: "int" args: "pid_t" "int" "struct rlimit *" "struct rlimit *" */
 #define	LINUX_SYS_prlimit64	339
 
+/* syscall: "syncfs" ret: "int" args: "int" */
+#define	LINUX_SYS_syncfs	343
+
 /* syscall: "getrandom" ret: "ssize_t" args: "void *" "size_t" "unsigned int" */
 #define	LINUX_SYS_getrandom	352
 

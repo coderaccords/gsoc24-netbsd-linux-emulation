@@ -1304,6 +1304,11 @@ struct linux_sys_prlimit64_args {
 };
 check_syscall_args(linux_sys_prlimit64)
 
+struct linux_sys_syncfs_args {
+	syscallarg(int) fd;
+};
+check_syscall_args(linux_sys_syncfs)
+
 struct linux_sys_accept4_args {
 	syscallarg(int) s;
 	syscallarg(struct osockaddr *) name;
@@ -1878,6 +1883,8 @@ int	linux_sys_preadv(struct lwp *, const struct linux_sys_preadv_args *, registe
 int	linux_sys_pwritev(struct lwp *, const struct linux_sys_pwritev_args *, register_t *);
 
 int	linux_sys_prlimit64(struct lwp *, const struct linux_sys_prlimit64_args *, register_t *);
+
+int	linux_sys_syncfs(struct lwp *, const struct linux_sys_syncfs_args *, register_t *);
 
 int	linux_sys_accept4(struct lwp *, const struct linux_sys_accept4_args *, register_t *);
 

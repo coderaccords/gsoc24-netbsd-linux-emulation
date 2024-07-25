@@ -741,6 +741,9 @@
 /* syscall: "accept4" ret: "int" args: "int" "struct osockaddr *" "int *" "int" */
 #define	LINUX_SYS_accept4	344
 
+/* syscall: "syncfs" ret: "int" args: "int" */
+#define	LINUX_SYS_syncfs	348
+
 /* syscall: "sendmmsg" ret: "int" args: "int" "struct linux_mmsghdr *" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_sendmmsg	349
 

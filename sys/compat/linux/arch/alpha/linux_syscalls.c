@@ -559,7 +559,7 @@ const char *const linux_syscallnames[] = {
 	/* 497 */	"#497 (unimplemented name_to_handle_at)",
 	/* 498 */	"#498 (unimplemented open_by_handle_at)",
 	/* 499 */	"#499 (unimplemented clock_adjtime)",
-	/* 500 */	"#500 (unimplemented syncfs)",
+	/* 500 */	"syncfs",
 	/* 501 */	"#501 (unimplemented setns)",
 	/* 502 */	"accept4",
 	/* 503 */	"sendmmsg",
@@ -1612,7 +1612,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 497 */	NULL, /* unimplemented name_to_handle_at */
 	/* 498 */	NULL, /* unimplemented open_by_handle_at */
 	/* 499 */	NULL, /* unimplemented clock_adjtime */
-	/* 500 */	NULL, /* unimplemented syncfs */
+	/* 500 */	NULL, /* syncfs */
 	/* 501 */	NULL, /* unimplemented setns */
 	/* 502 */	NULL, /* accept4 */
 	/* 503 */	NULL, /* sendmmsg */
