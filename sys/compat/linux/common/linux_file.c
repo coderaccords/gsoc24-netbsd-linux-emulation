@@ -962,6 +962,47 @@ linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args 
 
 }
 
+int	
+linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap, register_t *retval)
+{
+	/* {
+		syscallarg(int) fd;
+	} */
+
+	struct mount *mp;
+	struct vnode *vp;
+	file_t *fp;
+	int error, fd, asyncflag;
+	
+	fd = SCARG(uap, fd);
+	
+	// Get file pointer
+	if ((error = fd_getvnode(fd, &fp)) != 0)
+    	return error;
+    
+	// Get vnode and mount point
+    vp = fp->f_vnode;
+    mp = vp->v_mount;
+    
+
+    mutex_enter(mp->mnt_updating);
+	if ((mp->mnt_flag & MNT_RDONLY) == 0) {
+		asyncflag = mp->mnt_flag & MNT_ASYNC;
+		mp->mnt_flag &= ~MNT_ASYNC;
+		VFS_SYNC(mp, MNT_NOWAIT, l->l_cred);
+		if (asyncflag)
+				mp->mnt_flag |= MNT_ASYNC;
+	}
+	mutex_exit(mp->mnt_updating);
+
+	
+	// Cleanup vnode and file pointer
+	vrele(vp);
+	fd_putfile(fd);
+	return 0;
+
+}
+
 
 
 #define LINUX_NOT_SUPPORTED(fun) \
