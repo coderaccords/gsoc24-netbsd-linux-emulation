@@ -600,7 +600,7 @@
 345	UNIMPL		name_to_handle_at
 346	UNIMPL		open_by_handle_at
 347	UNIMPL		clock_adjtime
-348	UNIMPL		syncfs
+348	STD		{ int|linux_sys||syncfs(int fd); }
 349	STD		{ int|linux_sys||sendmmsg(int s, \
 			    struct linux_mmsghdr *msgvec, unsigned int vlen, \
 			    unsigned int flags); }

@@ -810,7 +810,7 @@
 497	UNIMPL		name_to_handle_at
 498	UNIMPL		open_by_handle_at
 499	UNIMPL		clock_adjtime
-500	UNIMPL		syncfs
+500	STD		{ int|linux_sys||syncfs(int fd); }
 501	UNIMPL		setns
 502	STD		{ int|linux_sys||accept4(int s, \
 			    struct osockaddr *name, \

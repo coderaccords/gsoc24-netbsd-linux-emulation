@@ -610,7 +610,7 @@
 370	UNIMPL		name_to_handle_at
 371	UNIMPL		open_by_handle_at
 372	UNIMPL		clock_adjtime
-373	UNIMPL		syncfs
+373	STD		{ int|linux_sys||syncfs(int fd); }
 374	STD		{ int|linux_sys||sendmmsg(int s, \
 			    struct linux_mmsghdr *msgvec, unsigned int vlen, \
 			    unsigned int flags); }

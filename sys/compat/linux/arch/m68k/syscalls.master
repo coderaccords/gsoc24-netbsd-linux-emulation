@@ -592,7 +592,7 @@
 340	UNIMPL		name_to_handle_at
 341	UNIMPL		open_by_handle_at
 342	UNIMPL		clock_adjtime
-343	UNIMPL		syncfs
+343	STD		{ int|linux_sys||syncfs(int fd); }
 344	UNIMPL		setns
 345	UNIMPL		process_vm_readv
 346	UNIMPL		process_vm_writev
