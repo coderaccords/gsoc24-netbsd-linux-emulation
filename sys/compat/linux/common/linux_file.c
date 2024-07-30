@@ -73,9 +73,6 @@ static int bsd_to_linux_ioflags(int);
 static void bsd_to_linux_stat(struct stat *, struct linux_stat *);
 #endif
 
-#define	roundup_PAGE(x)	((((x)+((PAGE_SIZE)-1))/(PAGE_SIZE))*(PAGE_SIZE))
-#define	rounddown_PAGE(x)	(((x)/(PAGE_SIZE))*(PAGE_SIZE))
-
 conv_linux_flock(linux, flock)
 
 /*
@@ -939,22 +936,21 @@ linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args 
 	    (SCARG(uap, flags) & ~(LINUX_SYNC_FILE_RANGE_WAIT_BEFORE |
 	    LINUX_SYNC_FILE_RANGE_WRITE |
 	    LINUX_SYNC_FILE_RANGE_WAIT_AFTER)) != 0) {
-		return (EINVAL);
+		return EINVAL;
 	}
 
 	// Fill ua with uap
 	SCARG(&ua, fd) = SCARG(uap, fd);
-	SCARG(&ua, start) = SCARG(uap, offset);
-	SCARG(&ua, length) = SCARG(uap, nbytes);
 	SCARG(&ua, flags) = SCARG(uap, flags);
 
 	// To-Do: Manage page boundaries for offset and length
 	// Round down offset to page boundary
-	SCARG(&ua, start) = rounddown_PAGE(SCARG(uap, offset));
-	if(SCARG(&ua, length)!=0)
-	{
+	SCARG(&ua, start) = rounddown(SCARG(uap, offset), PAGE_SIZE);
+	SCARG(&ua, length) = SCARG(uap, nbytes);
+	if (SCARG(&ua, length) != 0) {
 		// Round up length to nbytes+offset to page boundary
-		SCARG(&ua, length) = roundup_PAGE(SCARG(uap, nbytes) + SCARG(uap, offset)) - SCARG(&ua, start);	
+		SCARG(&ua, length) = roundup(SCARG(uap, nbytes)
+		    + SCARG(uap, offset)) - SCARG(&ua, start), PAGE_SIZE);	
 	}
 	
 	return sys_fsync_range(l, &ua, retval);
@@ -963,7 +959,8 @@ linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args 
 }
 
 int	
-linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap, register_t *retval)
+linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
+    register_t *retval)
 {
 	/* {
 		syscallarg(int) fd;
@@ -972,26 +969,25 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap, register_t *
 	struct mount *mp;
 	struct vnode *vp;
 	file_t *fp;
-	int error, fd, asyncflag;
+	int error, fd;
 	
 	fd = SCARG(uap, fd);
 	
 	// Get file pointer
 	if ((error = fd_getvnode(fd, &fp)) != 0)
-    	return error;
+		return error;
     
 	// Get vnode and mount point
-    vp = fp->f_vnode;
-    mp = vp->v_mount;
+	vp = fp->f_vnode;
+	mp = vp->v_mount;
     
-
-    mutex_enter(mp->mnt_updating);
+	mutex_enter(mp->mnt_updating);
 	if ((mp->mnt_flag & MNT_RDONLY) == 0) {
-		asyncflag = mp->mnt_flag & MNT_ASYNC;
+		int asyncflag = mp->mnt_flag & MNT_ASYNC;
 		mp->mnt_flag &= ~MNT_ASYNC;
 		VFS_SYNC(mp, MNT_NOWAIT, l->l_cred);
 		if (asyncflag)
-				mp->mnt_flag |= MNT_ASYNC;
+			mp->mnt_flag |= MNT_ASYNC;
 	}
 	mutex_exit(mp->mnt_updating);
 
