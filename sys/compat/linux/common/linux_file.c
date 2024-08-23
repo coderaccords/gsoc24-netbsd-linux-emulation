@@ -1010,9 +1010,21 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, r
 	syscallarg(unsigned int) flags;
 } */
 	
+
+	struct sys_renameat_args ua;
+	SCARG(&ua, fromfd) = SCARG(uap, fromfd);
+	SCARG(&ua, from) = SCARG(uap, from);
+	SCARG(&ua, tofd) = SCARG(uap, tofd);
+	SCARG(&ua, to) = SCARG(uap, to);
+
 	int unsigned flags = SCARG(uap, flags);
-	struct nameidata nd;
-    int error;
+	struct pathbuf *tpb;
+	// struct pathbuf *fpb;
+	struct nameidata tnd;
+	// struct nameidata fnd;
+	// struct vnode *fdvp, *fvp;
+	// struct vnode *tdvp, *tvp;
+	int error;
 
 	
 	if(flags!=0){	
@@ -1025,18 +1037,41 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, r
 			return EINVAL;
 		}
 
-	}
-	// Handle LINUX_RENAME_NOREPLACE
-    
+		error = pathbuf_maybe_copyin(SCARG(uap, to), UIO_USERSPACE, &tpb);
+		if (error)
+			goto out0;
+		KASSERT(tpb != NULL);
 
-	struct sys_renameat_args ua;
-	SCARG(&ua, fromfd) = SCARG(uap, fromfd);
-	SCARG(&ua, from) = SCARG(uap, from);
-	SCARG(&ua, tofd) = SCARG(uap, tofd);
-	SCARG(&ua, to) = SCARG(uap, to);
+		// Handle LINUX_RENAME_NOREPLACE
+		if (flags & LINUX_RENAME_NOREPLACE) {
+			NDINIT(&tnd, RENAME, (FOLLOW | LOCKPARENT), tpb);
+			struct stat sb;
+			if (do_sys_fstat(SCARG(uap, tofd), &sb) == 0) {
+				// Target file exists
+				printf("Target file exists\n");
+				error = EEXIST;
+				goto out1;
+			}
+			else{
+				// Target file does not exist
+				printf("Target file does not exist\n");
+				error = sys_renameat(l, &ua, retval);
+				goto out1;
+			}
 
+		}
 
-	return sys_renameat(l, &ua, retval);
+	}	 
+	
+	error = sys_renameat(l, &ua, retval);
+
+	// out2:
+	// 	// destroy stat 
+
+	out1:
+		pathbuf_destroy(tpb);
+	out0:
+		return error;
 	
 	
 }
