@@ -2035,6 +2035,17 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 3;
 		break;
 	}
+	/* linux_sys_renameat2 */
+	case 316: {
+		const struct linux_sys_renameat2_args *p = params;
+		iarg[0] = SCARG(p, fromfd); /* int */
+		uarg[1] = (intptr_t) SCARG(p, from); /* const char * */
+		iarg[2] = SCARG(p, tofd); /* int */
+		uarg[3] = (intptr_t) SCARG(p, to); /* const char * */
+		uarg[4] = SCARG(p, flags); /* unsigned int */
+		*n_args = 5;
+		break;
+	}
 	/* sys_getrandom */
 	case 318: {
 		const struct sys_getrandom_args *p = params;
@@ -5501,6 +5512,28 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_renameat2 */
+	case 316:
+		switch(ndx) {
+		case 0:
+			p = "int";
+			break;
+		case 1:
+			p = "const char *";
+			break;
+		case 2:
+			p = "int";
+			break;
+		case 3:
+			p = "const char *";
+			break;
+		case 4:
+			p = "unsigned int";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* sys_getrandom */
 	case 318:
 		switch(ndx) {
@@ -6779,6 +6812,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_sys_getcpu */
 	case 309:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_renameat2 */
+	case 316:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

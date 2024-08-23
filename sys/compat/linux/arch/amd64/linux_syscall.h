@@ -744,6 +744,9 @@
 /* syscall: "getcpu" ret: "int" args: "unsigned int *" "unsigned int *" "struct linux_getcpu_cache *" */
 #define	LINUX_SYS_getcpu	309
 
+/* syscall: "renameat2" ret: "int" args: "int" "const char *" "int" "const char *" "unsigned int" */
+#define	LINUX_SYS_renameat2	316
+
 /* syscall: "getrandom" ret: "ssize_t" args: "void *" "size_t" "unsigned int" */
 #define	LINUX_SYS_getrandom	318
 

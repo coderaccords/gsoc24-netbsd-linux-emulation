@@ -44,6 +44,7 @@ __KERNEL_RCSID(0, "$NetBSD: linux_file.c,v 1.123 2023/07/10 02:31:55 christos Ex
 #include <sys/file.h>
 #include <sys/fcntl.h>
 #include <sys/stat.h>
+#include <sys/vfs_syscalls.h>
 #include <sys/filedesc.h>
 #include <sys/ioctl.h>
 #include <sys/kernel.h>
@@ -950,7 +951,7 @@ linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args 
 	if (SCARG(&ua, length) != 0) {
 		// Round up length to nbytes+offset to page boundary
 		SCARG(&ua, length) = roundup(SCARG(uap, nbytes)
-		    + SCARG(uap, offset)) - SCARG(&ua, start), PAGE_SIZE);	
+		    + SCARG(uap, offset) - SCARG(&ua, start), PAGE_SIZE);	
 	}
 	
 	return sys_fsync_range(l, &ua, retval);
@@ -999,6 +1000,46 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
 
 }
 
+int 
+linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, register_t *retval){
+	/* {
+	syscallarg(int) fromfd;
+	syscallarg(const char *) from;
+	syscallarg(int) tofd;
+	syscallarg(const char *) to;
+	syscallarg(unsigned int) flags;
+} */
+	
+	int unsigned flags = SCARG(uap, flags);
+	struct nameidata nd;
+    int error;
+
+	
+	if(flags!=0){	
+		if(flags & ~(LINUX_RENAME_NOREPLACE | LINUX_RENAME_EXCHANGE | LINUX_RENAME_WHITEOUT)){
+			printf("Invalid flags\n");
+			return EINVAL;
+		}
+		if(flags & LINUX_RENAME_EXCHANGE && flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)){
+			printf("Invalid flag combination\n");
+			return EINVAL;
+		}
+
+	}
+	// Handle LINUX_RENAME_NOREPLACE
+    
+
+	struct sys_renameat_args ua;
+	SCARG(&ua, fromfd) = SCARG(uap, fromfd);
+	SCARG(&ua, from) = SCARG(uap, from);
+	SCARG(&ua, tofd) = SCARG(uap, tofd);
+	SCARG(&ua, to) = SCARG(uap, to);
+
+
+	return sys_renameat(l, &ua, retval);
+	
+	
+}
 
 
 #define LINUX_NOT_SUPPORTED(fun) \

@@ -63,6 +63,13 @@ struct stat;
 #define	LINUX_SYNC_FILE_RANGE_WRITE		2
 #define	LINUX_SYNC_FILE_RANGE_WAIT_AFTER	4
 
+/*
+ * renameat2 flags
+ */
+#define	LINUX_RENAME_NOREPLACE	0x00000001
+#define	LINUX_RENAME_EXCHANGE	0x00000002
+#define	LINUX_RENAME_WHITEOUT	0x00000004
+
 #ifdef _KERNEL
 int linux_to_bsd_ioflags(int);
 int linux_to_bsd_atflags(int);

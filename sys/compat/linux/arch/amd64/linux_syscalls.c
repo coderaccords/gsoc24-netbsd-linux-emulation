@@ -384,7 +384,7 @@ const char *const linux_syscallnames[] = {
 	/* 313 */	"#313 (unimplemented finit_module)",
 	/* 314 */	"#314 (unimplemented sched_setattr)",
 	/* 315 */	"#315 (unimplemented sched_getattr)",
-	/* 316 */	"#316 (unimplemented renameat2)",
+	/* 316 */	"renameat2",
 	/* 317 */	"#317 (unimplemented seccomp)",
 	/* 318 */	"getrandom",
 	/* 319 */	"memfd_create",
@@ -928,7 +928,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 313 */	NULL, /* unimplemented finit_module */
 	/* 314 */	NULL, /* unimplemented sched_setattr */
 	/* 315 */	NULL, /* unimplemented sched_getattr */
-	/* 316 */	NULL, /* unimplemented renameat2 */
+	/* 316 */	NULL, /* renameat2 */
 	/* 317 */	NULL, /* unimplemented seccomp */
 	/* 318 */	NULL, /* getrandom */
 	/* 319 */	NULL, /* memfd_create */

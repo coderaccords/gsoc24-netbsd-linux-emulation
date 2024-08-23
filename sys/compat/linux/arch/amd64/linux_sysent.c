@@ -1427,8 +1427,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 315 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 316 = filler */
+		ns(struct linux_sys_renameat2_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_renameat2
+	},		/* 316 = renameat2 */
 	{
 		.sy_call = linux_sys_nosys,
 	},		/* 317 = filler */

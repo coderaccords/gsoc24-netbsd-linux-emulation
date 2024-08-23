@@ -1215,6 +1215,15 @@ struct linux_sys_getcpu_args {
 };
 check_syscall_args(linux_sys_getcpu)
 
+struct linux_sys_renameat2_args {
+	syscallarg(int) fromfd;
+	syscallarg(const char *) from;
+	syscallarg(int) tofd;
+	syscallarg(const char *) to;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_renameat2)
+
 struct sys_getrandom_args;
 
 struct linux_sys_memfd_create_args {
@@ -1752,6 +1761,8 @@ int	linux_sys_syncfs(struct lwp *, const struct linux_sys_syncfs_args *, registe
 int	linux_sys_sendmmsg(struct lwp *, const struct linux_sys_sendmmsg_args *, register_t *);
 
 int	linux_sys_getcpu(struct lwp *, const struct linux_sys_getcpu_args *, register_t *);
+
+int	linux_sys_renameat2(struct lwp *, const struct linux_sys_renameat2_args *, register_t *);
 
 int	sys_getrandom(struct lwp *, const struct sys_getrandom_args *, register_t *);
 
