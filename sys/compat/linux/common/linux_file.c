@@ -1025,55 +1025,57 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, r
 	// struct vnode *fdvp, *fvp;
 	// struct vnode *tdvp, *tvp;
 	int error;
-
-	
 	if(flags!=0){	
 		if(flags & ~(LINUX_RENAME_NOREPLACE | LINUX_RENAME_EXCHANGE | LINUX_RENAME_WHITEOUT)){
-			printf("Invalid flags\n");
+			// printf("Invalid flags\n");
 			return EINVAL;
 		}
 		if(flags & LINUX_RENAME_EXCHANGE && flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)){
-			printf("Invalid flag combination\n");
+			// printf("Invalid flag combination\n");
 			return EINVAL;
 		}
-
 		error = pathbuf_maybe_copyin(SCARG(uap, to), UIO_USERSPACE, &tpb);
 		if (error)
 			goto out0;
-		KASSERT(tpb != NULL);
-
 		// Handle LINUX_RENAME_NOREPLACE
 		if (flags & LINUX_RENAME_NOREPLACE) {
-			NDINIT(&tnd, RENAME, (FOLLOW | LOCKPARENT), tpb);
-			struct stat sb;
-			if (do_sys_fstat(SCARG(uap, tofd), &sb) == 0) {
-				// Target file exists
-				printf("Target file exists\n");
-				error = EEXIST;
-				goto out1;
-			}
-			else{
-				// Target file does not exist
-				printf("Target file does not exist\n");
-				error = sys_renameat(l, &ua, retval);
-				goto out1;
-			}
-
+			NDINIT(&tnd, LOOKUP,
+	    		 (LOCKPARENT | NOCACHE | TRYEMULROOT ),
+	    		 tpb);
+			error = namei(&tnd);
+			if(error!=0 ){
+				if(error == ENOENT){
+					if(tnd.ni_vp){
+						// printf("Target file exists. This might be unnecessary with LOOKUP\n");
+						vput(tnd.ni_dvp);
+						vrele(tnd.ni_vp);
+						goto out1;
+					}
+					else{
+						vput(tnd.ni_dvp);  // Release the parent directory
+						error = sys_renameat(l, &ua, retval);
+						goto out1;
+					}	
+				}
+					goto out1;
+			} 
+			// If lookup is successful then the file does exist
+			if(error==0){
+					// Target exists
+					vrele(tnd.ni_vp);
+					vput(tnd.ni_dvp);
+					error = EEXIST;
+					goto out1;
 		}
-
 	}	 
-	
 	error = sys_renameat(l, &ua, retval);
-
+	goto out1;
 	// out2:
-	// 	// destroy stat 
-
+	// 	vput(tnd.ni_dvp);
 	out1:
 		pathbuf_destroy(tpb);
 	out0:
 		return error;
-	
-	
 }
 
 
