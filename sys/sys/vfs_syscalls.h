@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/fstypes.h>
+#include <sys/namei.h>
 
 struct stat;
 struct statvfs;
@@ -83,6 +84,7 @@ void	do_sys_sync(struct lwp *);
 int	do_sys_chdir(struct lwp *, const char *, enum uio_seg, register_t *);
 int	do_sys_fchdir(struct lwp *, int, register_t *);
 int	vfs_syncwait(void);
+int fd_nameiat(struct lwp *, int, struct nameidata *);
 
 int	chdir_lookup(const char *, int, struct vnode **, struct lwp *);
 void	change_root(struct vnode *);

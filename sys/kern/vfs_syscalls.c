@@ -138,7 +138,7 @@ static int do_sys_readlinkat(struct lwp *, int, const char *, char *,
     size_t, register_t *);
 static int do_sys_unlinkat(struct lwp *, int, const char *, int, enum uio_seg);
 
-static int fd_nameiat(struct lwp *, int, struct nameidata *);
+// int fd_nameiat(struct lwp *, int, struct nameidata *);
 static int fd_nameiat_simple_user(struct lwp *, int, const char *,
     namei_simple_flags_t, struct vnode **);
 
@@ -229,7 +229,7 @@ const struct filterops fs_filtops = {
 	.f_event = filt_fs,
 };
 
-static int
+int
 fd_nameiat(struct lwp *l, int fdat, struct nameidata *ndp)
 {
 	file_t *dfp;
