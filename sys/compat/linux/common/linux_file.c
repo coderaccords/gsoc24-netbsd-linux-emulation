@@ -1018,9 +1018,12 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, r
 	SCARG(&ua, to) = SCARG(uap, to);
 
 	int unsigned flags = SCARG(uap, flags);
+	int tofd;
 	struct pathbuf *tpb;
 	// struct pathbuf *fpb;
 	struct nameidata tnd;
+	// file_t *dfp = NULL;
+	tofd = SCARG(uap, tofd);
 	// struct nameidata fnd;
 	// struct vnode *fdvp, *fvp;
 	// struct vnode *tdvp, *tvp;
@@ -1039,33 +1042,55 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, r
 			goto out0;
 		// Handle LINUX_RENAME_NOREPLACE
 		if (flags & LINUX_RENAME_NOREPLACE) {
-			NDINIT(&tnd, LOOKUP,
-	    		 (LOCKPARENT | NOCACHE | TRYEMULROOT ),
-	    		 tpb);
-			error = namei(&tnd);
-			if(error!=0 ){
-				if(error == ENOENT){
-					if(tnd.ni_vp){
-						// printf("Target file exists. This might be unnecessary with LOOKUP\n");
-						vput(tnd.ni_dvp);
-						vrele(tnd.ni_vp);
-						goto out1;
-					}
-					else{
-						vput(tnd.ni_dvp);  // Release the parent directory
-						error = sys_renameat(l, &ua, retval);
-						goto out1;
-					}	
+			// The final component of the destination path is never followed if it's a symlink.
+			NDINIT(&tnd, DELETE, ( LOCKPARENT | TRYEMULROOT | NOFOLLOW), tpb);
+			printf("Calling fd_nameiat\n");
+			error = fd_nameiat(l, tofd, &tnd);
+			
+			printf("namei() returned error: %d\n", error);  // Debug print
+
+			if (error != 0) {
+				if (error == ENOENT) {
+					printf("ENOENT: Target doesn't exist\n");  // Debug print
+					// Target doesn't exist, proceed with rename
+					error = sys_renameat(l, &ua, retval);
+					printf("sys_renameat() returned: %d\n", error);  // Debug print
+				} else {
+					printf("Unexpected error from namei(): %d\n", error);  // Debug print
 				}
-					goto out1;
-			} 
-			// If lookup is successful then the file does exist
-			if(error==0){
-					// Target exists
-					vrele(tnd.ni_vp);
+				// Clean up and return
+				if (tnd.ni_dvp) {
+					printf("Releasing parent directory vnode\n");  // Debug print
 					vput(tnd.ni_dvp);
-					error = EEXIST;
-					goto out1;
+				}
+				if (tnd.ni_vp) {
+					printf("Releasing target vnode\n");  // Debug print
+					vrele(tnd.ni_vp);
+				}
+				goto out1;
+			} 
+
+			// If we reach here, namei() was successful
+			printf("namei() successful, checking if target exists\n");  // Debug print
+
+			if (tnd.ni_vp) {
+				printf("Target exists, returning EEXIST\n");  // Debug print
+				// Target exists, return EEXIST
+				vrele(tnd.ni_vp);
+				error = EEXIST;
+			} else {
+				printf("Unexpected: ni_vp is NULL after successful namei()\n");  // Debug print
+				// This shouldn't happen, but just in case
+				error = EINVAL;
+			}
+
+			// Clean up directory vnode
+			if (tnd.ni_dvp) {
+				printf("Releasing parent directory vnode\n");  // Debug print
+				vput(tnd.ni_dvp);
+			}
+
+			goto out1;
 		}
 	}	 
 	error = sys_renameat(l, &ua, retval);
