@@ -901,7 +901,8 @@ linux_to_bsd_atflags(int lflags)
 }
 
 int
-linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap, register_t *retval)
+linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap,
+    register_t *retval)
 {
 	/* {
 		syscallarg(int) fd;
@@ -913,16 +914,14 @@ linux_sys_faccessat2(lwp_t *l, const struct linux_sys_faccessat2_args *uap, regi
 	int mode = SCARG(uap, amode);
 	int fd = SCARG(uap, fd);
 	const char *path = SCARG(uap, path);
-	int error;
 
-	error = do_sys_accessat(l, fd, path, mode, flag);
-	
-	return error;
+	return do_sys_accessat(l, fd, path, mode, flag);
 }
 
 
 int	
-linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args *uap, register_t *retval)
+linux_sys_sync_file_range(lwp_t *l,
+    const struct linux_sys_sync_file_range_args *uap, register_t *retval)
 {
 	/* {
 		syscallarg(int) fd;
@@ -934,11 +933,8 @@ linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args 
 	struct sys_fsync_range_args ua;
 
 	if (SCARG(uap, offset) < 0 || SCARG(uap, nbytes) < 0 ||
-	    (SCARG(uap, flags) & ~(LINUX_SYNC_FILE_RANGE_WAIT_BEFORE |
-	    LINUX_SYNC_FILE_RANGE_WRITE |
-	    LINUX_SYNC_FILE_RANGE_WAIT_AFTER)) != 0) {
+	    ((SCARG(uap, flags) & ~LINUX_SYNC_FILE_RANGE_ALL) != 0)
 		return EINVAL;
-	}
 
 	// Fill ua with uap
 	SCARG(&ua, fd) = SCARG(uap, fd);
@@ -955,8 +951,6 @@ linux_sys_sync_file_range(lwp_t *l, const struct linux_sys_sync_file_range_args 
 	}
 	
 	return sys_fsync_range(l, &ua, retval);
-
-
 }
 
 int	
@@ -1001,16 +995,15 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
 }
 
 int 
-linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, register_t *retval){
+linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
+    register_t *retval) {
 	/* {
-	syscallarg(int) fromfd;
-	syscallarg(const char *) from;
-	syscallarg(int) tofd;
-	syscallarg(const char *) to;
-	syscallarg(unsigned int) flags;
-} */
-	
-
+		syscallarg(int) fromfd;
+		syscallarg(const char *) from;
+		syscallarg(int) tofd;
+		syscallarg(const char *) to;
+		syscallarg(unsigned int) flags;
+	} */
 	struct sys_renameat_args ua;
 	SCARG(&ua, fromfd) = SCARG(uap, fromfd);
 	SCARG(&ua, from) = SCARG(uap, from);
@@ -1025,57 +1018,49 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap, r
 	// struct vnode *fdvp, *fvp;
 	// struct vnode *tdvp, *tvp;
 	int error;
-	if(flags!=0){	
-		if(flags & ~(LINUX_RENAME_NOREPLACE | LINUX_RENAME_EXCHANGE | LINUX_RENAME_WHITEOUT)){
-			// printf("Invalid flags\n");
-			return EINVAL;
-		}
-		if(flags & LINUX_RENAME_EXCHANGE && flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)){
-			// printf("Invalid flag combination\n");
-			return EINVAL;
-		}
-		error = pathbuf_maybe_copyin(SCARG(uap, to), UIO_USERSPACE, &tpb);
-		if (error)
-			goto out0;
-		// Handle LINUX_RENAME_NOREPLACE
-		if (flags & LINUX_RENAME_NOREPLACE) {
-			NDINIT(&tnd, LOOKUP,
-	    		 (LOCKPARENT | NOCACHE | TRYEMULROOT ),
-	    		 tpb);
-			error = namei(&tnd);
-			if(error!=0 ){
-				if(error == ENOENT){
-					if(tnd.ni_vp){
-						// printf("Target file exists. This might be unnecessary with LOOKUP\n");
-						vput(tnd.ni_dvp);
-						vrele(tnd.ni_vp);
-						goto out1;
-					}
-					else{
-						vput(tnd.ni_dvp);  // Release the parent directory
-						error = sys_renameat(l, &ua, retval);
-						goto out1;
-					}	
-				}
-					goto out1;
-			} 
+
+	if ((flags & ~LINUX_RENAME_ALL) != 0)
+		return EINVAL;
+
+	if ((flags & LINUX_RENAME_EXCHANGE) != 0 && 
+	    (flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)) != 0)
+		return EINVAL;
+
+	error = pathbuf_maybe_copyin(SCARG(uap, to), UIO_USERSPACE, &tpb);
+	if (error)
+		return error;
+	// XXX: this should happen inside the native rename operation.
+	// Can't be done using a separate namei because it is not atomic...
+	// (another process/thread can put the file between the lookup
+	// and the rename)
+	// Handle LINUX_RENAME_NOREPLACE
+	if (flags & LINUX_RENAME_NOREPLACE) {
+		NDINIT(&tnd, LOOKUP, LOCKPARENT | NOCACHE | TRYEMULROOT, tpb);
+		error = namei(&tnd);
+		if (error == 0) {
 			// If lookup is successful then the file does exist
-			if(error==0){
-					// Target exists
-					vrele(tnd.ni_vp);
-					vput(tnd.ni_dvp);
-					error = EEXIST;
-					goto out1;
+			vrele(tnd.ni_vp);
+			vput(tnd.ni_dvp);
+			error = EEXIST;
+			goto out;
 		}
+		if (error == ENOENT) {
+			// XXX: Does this happen with ENOENT?
+			if (tnd.ni_vp) {
+				// printf("Target file exists. This might be unnecessary with LOOKUP\n");
+				vput(tnd.ni_dvp);
+				vrele(tnd.ni_vp);
+				goto out;
+			}
+			vput(tnd.ni_dvp);  // Release the parent directory
+			error = sys_renameat(l, &ua, retval);
+			goto out;
+		}	
 	}	 
 	error = sys_renameat(l, &ua, retval);
-	goto out1;
-	// out2:
-	// 	vput(tnd.ni_dvp);
-	out1:
-		pathbuf_destroy(tpb);
-	out0:
-		return error;
+out:
+	pathbuf_destroy(tpb);
+	return error;
 }
 
 
