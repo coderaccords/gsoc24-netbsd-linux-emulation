@@ -61,6 +61,27 @@
 				0x01000000	/* set TID in the child */
 #define LINUX_CLONE_STOPPED	0x02000000	/* start in stopped state */
 
+/*
+ * Flags that clone supports but are yet to be supported in NetBSD
+ */
+
+#define	LINUX_CLONE_PIDFD		0x00001000	/* since Linux 5.2 */
+#define	LINUX_CLONE_NEWCGROUP		0x02000000	/* New cgroup NS */
+#define	LINUX_CLONE_NEWUTS		0x04000000
+#define	LINUX_CLONE_NEWIPC		0x08000000
+#define	LINUX_CLONE_NEWUSER		0x10000000
+#define	LINUX_CLONE_NEWPID		0x20000000
+#define	LINUX_CLONE_NEWNET		0x40000000
+#define	LINUX_CLONE_IO			0x80000000
+
+/* Flags for the clone3() syscall. */
+#define	LINUX_CLONE_CLEAR_SIGHAND	0x100000000ULL
+#define	LINUX_CLONE_INTO_CGROUP		0x200000000ULL
+#define	LINUX_CLONE_NEWTIME		0x00000080
+
+#define	LINUX_CLONE_LEGACY_FLAGS	0xffffffffULL
+
+#define	LINUX_CSIGNAL			0x000000ff
 struct linux_sched_param {
 	int	sched_priority;
 };
@@ -80,23 +101,23 @@ struct linux_itimerspec {
 };
 
 struct linux_user_clone3_args {
-    u64 flags;        /* Flags bit mask */
-    u64 pidfd;        /* Where to store PID file descriptor
+    uint64_t flags;        /* Flags bit mask */
+    uint64_t pidfd;        /* Where to store PID file descriptor
                          (int *) */
-    u64 child_tid;    /* Where to store child TID,
+    uint64_t child_tid;    /* Where to store child TID,
                          in child's memory (pid_t *) */
-    u64 parent_tid;   /* Where to store child TID,
+    uint64_t parent_tid;   /* Where to store child TID,
                          in parent's memory (pid_t *) */
-    u64 exit_signal;  /* Signal to deliver to parent on
+    uint64_t exit_signal;  /* Signal to deliver to parent on
                          child termination */
-    u64 stack;        /* Pointer to lowest byte of stack */
-    u64 stack_size;   /* Size of stack */
-    u64 tls;          /* Location of new TLS */
-    u64 set_tid;      /* Pointer to a pid_t array
+    uint64_t stack;        /* Pointer to lowest byte of stack */
+    uint64_t stack_size;   /* Size of stack */
+    uint64_t tls;          /* Location of new TLS */
+    uint64_t set_tid;      /* Pointer to a pid_t array
                          (since Linux 5.5) */
-    u64 set_tid_size; /* Number of elements in set_tid
+    uint64_t set_tid_size; /* Number of elements in set_tid
                          (since Linux 5.5) */
-    u64 cgroup;       /* File descriptor for target cgroup
+    uint64_t cgroup;       /* File descriptor for target cgroup
                          of child (since Linux 5.7) */
 };
 
