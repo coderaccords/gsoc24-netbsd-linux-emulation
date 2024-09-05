@@ -706,7 +706,8 @@
 432	UNIMPL		fsmount
 433	UNIMPL		fspick
 434	UNIMPL		pidfd_open
-435	UNIMPL		clone3
+435	STD		{ int|linux_sys||clone3(struct linux_user_clone3_args *cl_args, \
+					size_t size); }
 436	STD		{ int|linux_sys||close_range(unsigned int first, \
 			    unsigned int last, unsigned int flags); }
 437	UNIMPL		openat2

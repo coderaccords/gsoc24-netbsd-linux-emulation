@@ -933,7 +933,7 @@ linux_sys_sync_file_range(lwp_t *l,
 	struct sys_fsync_range_args ua;
 
 	if (SCARG(uap, offset) < 0 || SCARG(uap, nbytes) < 0 ||
-	    ((SCARG(uap, flags) & ~LINUX_SYNC_FILE_RANGE_ALL) != 0)
+	    ((SCARG(uap, flags) & ~LINUX_SYNC_FILE_RANGE_ALL) != 0))
 		return EINVAL;
 
 	// Fill ua with uap
