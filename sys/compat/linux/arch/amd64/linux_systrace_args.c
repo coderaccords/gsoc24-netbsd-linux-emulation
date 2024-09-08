@@ -2074,6 +2074,14 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 5;
 		break;
 	}
+	/* linux_sys_clone3 */
+	case 435: {
+		const struct linux_sys_clone3_args *p = params;
+		uarg[0] = (intptr_t) SCARG(p, cl_args); /* struct linux_user_clone3_args * */
+		uarg[1] = SCARG(p, size); /* size_t */
+		*n_args = 2;
+		break;
+	}
 	/* linux_sys_close_range */
 	case 436: {
 		const struct linux_sys_close_range_args *p = params;
@@ -5585,6 +5593,19 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_clone3 */
+	case 435:
+		switch(ndx) {
+		case 0:
+			p = "struct linux_user_clone3_args *";
+			break;
+		case 1:
+			p = "size_t";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_close_range */
 	case 436:
 		switch(ndx) {
@@ -6832,6 +6853,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_sys_statx */
 	case 332:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_clone3 */
+	case 435:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

@@ -2170,3 +2170,60 @@ linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args *uap, register_t *
 
 	return error;
 }
+
+int
+linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, register_t *retval)
+{
+	printf("Entering linux_sys_clone3\n");
+
+    struct linux_user_clone3_args cl_args;
+	struct linux_sys_clone_args clone_args;
+    int error;
+
+    if (SCARG(uap, size) != sizeof(cl_args)) {
+        printf("Invalid size less or more\n");
+        return EINVAL;
+    }
+
+    error = copyin(SCARG(uap, cl_args), &cl_args, SCARG(uap, size));
+    if (error) {
+        printf("Copyin failed: %d\n", error);
+        return error;
+    }
+
+    printf("Flags: 0x%lx\n", (unsigned long)cl_args.flags);
+
+	/* Define allowed flags */
+	int allowed_flags = LINUX_CLONE_VM | LINUX_CLONE_FS | LINUX_CLONE_FILES |
+	                LINUX_CLONE_SIGHAND | LINUX_CLONE_THREAD | LINUX_CLONE_VFORK |
+	                LINUX_CLONE_PARENT_SETTID | LINUX_CLONE_CHILD_CLEARTID |
+	                LINUX_CLONE_CHILD_SETTID | LINUX_CLONE_SETTLS;
+
+	int unimplemented_flags = LINUX_CLONE_NEWNS | LINUX_CLONE_NEWUTS | LINUX_CLONE_NEWIPC |
+	                          LINUX_CLONE_NEWUSER | LINUX_CLONE_NEWPID | LINUX_CLONE_NEWNET |
+	                          LINUX_CLONE_PIDFD;
+
+	if(cl_args.flags & unimplemented_flags)
+	{
+		printf("Unsupported flags for clone3: 0x%x\n", unimplemented_flags);
+		return EINVAL;
+	}
+	if(cl_args.flags & ~(allowed_flags))
+	{
+		printf("Unallowed flags for clone3: 0x%x\n", unimplemented_flags);
+		return EINVAL;
+	}
+
+	SCARG(&clone_args, flags) = (int)(cl_args.flags & allowed_flags);
+    SCARG(&clone_args, stack) = (void *)cl_args.stack;
+    SCARG(&clone_args, parent_tidptr) = (void *)cl_args.parent_tid;
+    SCARG(&clone_args, tls) = (void *)cl_args.tls;
+    SCARG(&clone_args, child_tidptr) = (void *)cl_args.child_tid;
+
+	/* Call linux_sys_clone with filtered arguments */
+	printf("Calling clone\n");
+	return linux_sys_clone(l, &clone_args, retval);
+    // For now, just return ENOSYS to avoid freezing
+    printf("Exiting linux_sys_clone3\n");
+    return ENOSYS;
+}

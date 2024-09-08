@@ -1241,6 +1241,12 @@ struct linux_sys_statx_args {
 };
 check_syscall_args(linux_sys_statx)
 
+struct linux_sys_clone3_args {
+	syscallarg(struct linux_user_clone3_args *) cl_args;
+	syscallarg(size_t) size;
+};
+check_syscall_args(linux_sys_clone3)
+
 struct linux_sys_close_range_args {
 	syscallarg(unsigned int) first;
 	syscallarg(unsigned int) last;
@@ -1769,6 +1775,8 @@ int	sys_getrandom(struct lwp *, const struct sys_getrandom_args *, register_t *)
 int	linux_sys_memfd_create(struct lwp *, const struct linux_sys_memfd_create_args *, register_t *);
 
 int	linux_sys_statx(struct lwp *, const struct linux_sys_statx_args *, register_t *);
+
+int	linux_sys_clone3(struct lwp *, const struct linux_sys_clone3_args *, register_t *);
 
 int	linux_sys_close_range(struct lwp *, const struct linux_sys_close_range_args *, register_t *);
 

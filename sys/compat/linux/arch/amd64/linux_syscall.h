@@ -756,6 +756,9 @@
 /* syscall: "statx" ret: "int" args: "int" "const char *" "int" "unsigned int" "struct linux_statx *" */
 #define	LINUX_SYS_statx	332
 
+/* syscall: "clone3" ret: "int" args: "struct linux_user_clone3_args *" "size_t" */
+#define	LINUX_SYS_clone3	435
+
 /* syscall: "close_range" ret: "int" args: "unsigned int" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_close_range	436
 

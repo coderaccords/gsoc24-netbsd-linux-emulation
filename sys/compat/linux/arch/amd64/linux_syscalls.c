@@ -503,7 +503,7 @@ const char *const linux_syscallnames[] = {
 	/* 432 */	"#432 (unimplemented fsmount)",
 	/* 433 */	"#433 (unimplemented fspick)",
 	/* 434 */	"#434 (unimplemented pidfd_open)",
-	/* 435 */	"#435 (unimplemented clone3)",
+	/* 435 */	"clone3",
 	/* 436 */	"close_range",
 	/* 437 */	"#437 (unimplemented openat2)",
 	/* 438 */	"#438 (unimplemented pidfd_getfd)",
@@ -1047,7 +1047,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 432 */	NULL, /* unimplemented fsmount */
 	/* 433 */	NULL, /* unimplemented fspick */
 	/* 434 */	NULL, /* unimplemented pidfd_open */
-	/* 435 */	NULL, /* unimplemented clone3 */
+	/* 435 */	NULL, /* clone3 */
 	/* 436 */	NULL, /* close_range */
 	/* 437 */	NULL, /* unimplemented openat2 */
 	/* 438 */	NULL, /* unimplemented pidfd_getfd */
