@@ -55,7 +55,7 @@ __KERNEL_RCSID(0, "$NetBSD: linux_file.c,v 1.123 2023/07/10 02:31:55 christos Ex
 #include <sys/socketvar.h>
 #include <sys/conf.h>
 #include <sys/pipe.h>
-
+#include <sys/fstrans.h>
 #include <sys/syscallargs.h>
 #include <sys/vfs_syscalls.h>
 
@@ -1004,20 +1004,32 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 		syscallarg(const char *) to;
 		syscallarg(unsigned int) flags;
 	} */
-	struct sys_renameat_args ua;
-	SCARG(&ua, fromfd) = SCARG(uap, fromfd);
-	SCARG(&ua, from) = SCARG(uap, from);
-	SCARG(&ua, tofd) = SCARG(uap, tofd);
-	SCARG(&ua, to) = SCARG(uap, to);
 
+	int fromfd = SCARG(uap, fromfd);
+	const char *from = SCARG(uap, from);
+	int tofd = SCARG(uap, tofd);
+	const char *to = SCARG(uap, to);
 	int unsigned flags = SCARG(uap, flags);
-	struct pathbuf *tpb;
-	// struct pathbuf *fpb;
-	struct nameidata tnd;
-	// struct nameidata fnd;
-	// struct vnode *fdvp, *fvp;
-	// struct vnode *tdvp, *tvp;
+	enum uio_seg seg = UIO_USERSPACE;
+	int retain = 0;
+	
+	struct pathbuf *fpb, *tpb;
+	struct nameidata fnd, tnd;
+	struct vnode *fdvp, *fvp;
+	struct vnode *tdvp, *tvp;
+	struct mount *mp, *tmp;
 	int error;
+
+	// if flags is 0, then it is a simple rename
+	if (flags == 0) {
+		struct sys_renameat_args ua;
+		SCARG(&ua, fromfd) = fromfd;
+		SCARG(&ua, from) = from;
+		SCARG(&ua, tofd) = tofd;
+		SCARG(&ua, to) = to;
+		return sys_renameat(l, &ua, retval);
+	}
+	
 
 	if ((flags & ~LINUX_RENAME_ALL) != 0)
 		return EINVAL;
@@ -1026,41 +1038,196 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 	    (flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)) != 0)
 		return EINVAL;
 
-	error = pathbuf_maybe_copyin(SCARG(uap, to), UIO_USERSPACE, &tpb);
+	// If LINUX_RENAME_WHITEOUT is used return EOPNOTSUPP
+	if (flags & LINUX_RENAME_WHITEOUT)
+		return EOPNOTSUPP;
+
+	KASSERT(l != NULL || fromfd == AT_FDCWD);
+	KASSERT(l != NULL || tofd == AT_FDCWD);
+
+	error = pathbuf_maybe_copyin(from, seg, &fpb);
 	if (error)
-		return error;
+		goto out0;
+	KASSERT(fpb != NULL);
+
+	error = pathbuf_maybe_copyin(to, seg, &tpb);
+	if (error)
+		goto out1;
+	KASSERT(tpb != NULL);
+
+
+	// Lookup source
+	NDINIT(&fnd, DELETE, (LOCKPARENT | TRYEMULROOT), fpb);
+	if ((error = fd_nameiat(l, fromfd, &fnd)) != 0)
+		goto out2;
+
+	fdvp = fnd.ni_dvp;
+	fvp = fnd.ni_vp;
+	mp = fdvp->v_mount;
+	KASSERT(fdvp != NULL);
+	KASSERT(fvp != NULL);
+	KASSERT((fdvp == fvp) || (VOP_ISLOCKED(fdvp) == LK_EXCLUSIVE));
+
+	fstrans_start(mp);
+
+	// This is probably done for lookup of to to be successful
+	// in case it is in the same directory as from and also to 
+	// check fulfill requirements for VOP_RENAME
+	if (fdvp != fvp)
+		VOP_UNLOCK(fdvp);
+
+	// Reject renaming `.' and `..'. 
+	if (((fnd.ni_cnd.cn_namelen == 1) &&
+		(fnd.ni_cnd.cn_nameptr[0] == '.')) ||
+	    ((fnd.ni_cnd.cn_namelen == 2) &&
+		(fnd.ni_cnd.cn_nameptr[0] == '.') &&
+		(fnd.ni_cnd.cn_nameptr[1] == '.'))) {
+		error = EINVAL;
+		goto abort0;
+	}
+
 	// XXX: this should happen inside the native rename operation.
 	// Can't be done using a separate namei because it is not atomic...
 	// (another process/thread can put the file between the lookup
 	// and the rename)
 	// Handle LINUX_RENAME_NOREPLACE
+	// Do lookup of to depending on flags
 	if (flags & LINUX_RENAME_NOREPLACE) {
-		NDINIT(&tnd, LOOKUP, LOCKPARENT | NOCACHE | TRYEMULROOT, tpb);
-		error = namei(&tnd);
+		// perform lookup of to
+		NDINIT(&tnd, LOOKUP, (LOCKPARENT | NOCACHE | TRYEMULROOT), tpb);
+		// If the file already exists, return EEXIST
+		error = fd_nameiat(l, tofd, &tnd);
 		if (error == 0) {
-			// If lookup is successful then the file does exist
-			vrele(tnd.ni_vp);
-			vput(tnd.ni_dvp);
 			error = EEXIST;
-			goto out;
+			goto abort0;
 		}
-		if (error == ENOENT) {
-			// XXX: Does this happen with ENOENT?
-			if (tnd.ni_vp) {
-				// printf("Target file exists. This might be unnecessary with LOOKUP\n");
-				vput(tnd.ni_dvp);
-				vrele(tnd.ni_vp);
-				goto out;
-			}
-			vput(tnd.ni_dvp);  // Release the parent directory
-			error = sys_renameat(l, &ua, retval);
-			goto out;
-		}	
-	}	 
-	error = sys_renameat(l, &ua, retval);
-out:
+		else if (error != ENOENT) {
+			goto abort0;
+		}
+	}
+	// else if ((flags & LINUX_RENAME_EXCHANGE) != 0) {
+	// 	// Do a rename lookup for this flag 
+	// 	// What should be the operation here? Either RENAME or LOOKUP?
+	// 	// Use LOOKUP for now
+	// 	NDINIT(&tnd, LOOKUP, (LOCKPARENT | NOCACHE | TRYEMULROOT), tpb);
+	// 	if ((error = fd_nameiat(l, tofd, &tnd)) != 0)
+	// 		goto abort0;
+	// }
+	tdvp = tnd.ni_dvp;
+	tvp = tnd.ni_vp;
+	KASSERT(tdvp != NULL);
+	KASSERT((tdvp == tvp) || (VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE));
+
+	// This check seems unnecessary as we want 
+	if (fvp->v_type == VDIR)
+		tnd.ni_cnd.cn_flags |= WILLBEDIR;
+
+	if (tdvp != tvp)
+		VOP_UNLOCK(tdvp);
+
+	// Check for invalid names
+	if ((tnd.ni_cnd.cn_namelen == 1) && (tnd.ni_cnd.cn_nameptr[0] == '.')) {
+		error = EISDIR;
+		goto abort1;
+	}
+	if ((tnd.ni_cnd.cn_namelen == 2) &&
+	    (tnd.ni_cnd.cn_nameptr[0] == '.') &&
+	    (tnd.ni_cnd.cn_nameptr[1] == '.')) {
+		error = EINVAL;
+		goto abort1;
+	}
+
+	// Check for cross-device rename
+	KASSERT(mp != NULL);
+	tmp = tdvp->v_mount;
+
+	if (mp != tmp) {
+		error = EXDEV;
+		goto abort1;
+	}
+	
+	error = VFS_RENAMELOCK_ENTER(mp);
+	if (error)
+		goto abort1;
+
+	vn_lock(tdvp, LK_EXCLUSIVE | LK_RETRY);
+	if(flags & LINUX_RENAME_NOREPLACE){
+		error = relookup(tdvp, &tnd.ni_vp, &tnd.ni_cnd, 0);
+		if (error == 0) {
+			error = EEXIST;
+			goto abort2;
+		}
+		else if (error != ENOENT) {
+			goto abort2;
+		}
+	}
+
+	// Update vnode pointer for target
+	if (tvp != NULL)
+		vrele(tvp);
+	tvp = tnd.ni_vp;
+	KASSERT(VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE);
+	KASSERT((tvp == NULL) || (VOP_ISLOCKED(tvp) == LK_EXCLUSIVE));
+
+	/*
+	 * Acknowledge that directories and non-directories aren't
+	 * supposed to mix.
+	 */
+	if (tvp != NULL) {
+		if ((fvp->v_type == VDIR) && (tvp->v_type != VDIR)) {
+			error = ENOTDIR;
+			goto abort3;
+		} else if ((fvp->v_type != VDIR) && (tvp->v_type == VDIR)) {
+			error = EISDIR;
+			goto abort3;
+		}
+	}
+
+	if (fvp == tdvp) {
+		error = EINVAL;
+		goto abort3;
+	}
+
+	if (fvp == tvp) {
+		if (retain) {
+			error = 0;
+			goto abort3;
+		} else if ((fdvp == tdvp) &&
+		    (fnd.ni_cnd.cn_namelen == tnd.ni_cnd.cn_namelen) &&
+		    (0 == memcmp(fnd.ni_cnd.cn_nameptr, tnd.ni_cnd.cn_nameptr,
+			fnd.ni_cnd.cn_namelen))) {
+			error = 0;
+			goto abort3;
+		}
+	}
+
+	KASSERT(VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE);
+	KASSERT((tvp == NULL) || (VOP_ISLOCKED(tvp) == LK_EXCLUSIVE));
+	error = VOP_RENAME(fdvp, fvp, &fnd.ni_cnd, tdvp, tvp, &tnd.ni_cnd);
+
+	VFS_RENAMELOCK_EXIT(mp);
+	fstrans_done(mp);
+	goto out2;
+
+
+abort3:	if ((tvp != NULL) && (tvp != tdvp))
+		VOP_UNLOCK(tvp);
+abort2:	VOP_UNLOCK(tdvp);
+	VFS_RENAMELOCK_EXIT(mp);
+abort1:	VOP_ABORTOP(tdvp, &tnd.ni_cnd);
+	vrele(tdvp);
+	if (tvp != NULL)
+		vrele(tvp);
+abort0:	VOP_ABORTOP(fdvp, &fnd.ni_cnd);
+	vrele(fdvp);
+	vrele(fvp);
+	fstrans_done(mp);
+out2:
 	pathbuf_destroy(tpb);
-	return error;
+out1:
+	pathbuf_destroy(fpb);
+out0:
+return error;
 }
 
 
