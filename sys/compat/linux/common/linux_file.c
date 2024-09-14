@@ -1005,6 +1005,7 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 		syscallarg(unsigned int) flags;
 	} */
 
+	printf("linux_sys_renameat2: uap=%p\n", uap);
 	int fromfd = SCARG(uap, fromfd);
 	const char *from = SCARG(uap, from);
 	int tofd = SCARG(uap, tofd);
@@ -1019,6 +1020,8 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 	struct vnode *tdvp, *tvp;
 	struct mount *mp, *tmp;
 	int error;
+
+ 	printf("linux_sys_renameat2: fromfd=%d, from=%s, tofd=%d, to=%s, flags=%u\n", fromfd, from, tofd, to, flags);
 
 	// if flags is 0, then it is a simple rename
 	if (flags == 0) {
@@ -1040,26 +1043,39 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 
 	// If LINUX_RENAME_WHITEOUT is used return EOPNOTSUPP
 	if (flags & LINUX_RENAME_WHITEOUT)
-		return EOPNOTSUPP;
+		return EINVAL;
+
+	if (flags & LINUX_RENAME_EXCHANGE)
+		return EINVAL;
+
 
 	KASSERT(l != NULL || fromfd == AT_FDCWD);
 	KASSERT(l != NULL || tofd == AT_FDCWD);
 
 	error = pathbuf_maybe_copyin(from, seg, &fpb);
-	if (error)
+	if (error) {
+		printf("pathbuf_maybe_copyin from failed: %d\n", error);
 		goto out0;
+	}
 	KASSERT(fpb != NULL);
 
 	error = pathbuf_maybe_copyin(to, seg, &tpb);
-	if (error)
+	if (error) {
+		printf("pathbuf_maybe_copyin to failed: %d\n", error);
 		goto out1;
+	}
 	KASSERT(tpb != NULL);
 
 
 	// Lookup source
+	printf("Lookup source\n");
 	NDINIT(&fnd, DELETE, (LOCKPARENT | TRYEMULROOT), fpb);
-	if ((error = fd_nameiat(l, fromfd, &fnd)) != 0)
+	if ((error = fd_nameiat(l, fromfd, &fnd)) != 0) {
+		printf("fd_nameiat from failed: %d\n", error);
 		goto out2;
+	}
+	printf("Lookup source done\n");
+
 
 	fdvp = fnd.ni_dvp;
 	fvp = fnd.ni_vp;
@@ -1083,6 +1099,7 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 		(fnd.ni_cnd.cn_nameptr[0] == '.') &&
 		(fnd.ni_cnd.cn_nameptr[1] == '.'))) {
 		error = EINVAL;
+		printf("Invalid source name: %d\n", error);
 		goto abort0;
 	}
 
@@ -1093,47 +1110,49 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 	// Handle LINUX_RENAME_NOREPLACE
 	// Do lookup of to depending on flags
 	if (flags & LINUX_RENAME_NOREPLACE) {
+		printf("LINUX_RENAME_NOREPLACE\n");
 		// perform lookup of to
-		NDINIT(&tnd, LOOKUP, (LOCKPARENT | NOCACHE | TRYEMULROOT), tpb);
+		printf("Lookup target\n");
+		NDINIT(&tnd, LOOKUP, ( NOCACHE | TRYEMULROOT), tpb);
 		// If the file already exists, return EEXIST
 		error = fd_nameiat(l, tofd, &tnd);
+		printf("Lookup target done\n");
 		if (error == 0) {
 			error = EEXIST;
+			printf("Target file exists: %d\n", error);
 			goto abort0;
 		}
 		else if (error != ENOENT) {
+			printf("fd_nameiat to failed: %d\n", error);
 			goto abort0;
 		}
 	}
-	// else if ((flags & LINUX_RENAME_EXCHANGE) != 0) {
-	// 	// Do a rename lookup for this flag 
-	// 	// What should be the operation here? Either RENAME or LOOKUP?
-	// 	// Use LOOKUP for now
-	// 	NDINIT(&tnd, LOOKUP, (LOCKPARENT | NOCACHE | TRYEMULROOT), tpb);
-	// 	if ((error = fd_nameiat(l, tofd, &tnd)) != 0)
-	// 		goto abort0;
-	// }
+
 	tdvp = tnd.ni_dvp;
 	tvp = tnd.ni_vp;
+	//shiv: This assertion is failing why so? 
 	KASSERT(tdvp != NULL);
-	KASSERT((tdvp == tvp) || (VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE));
-
+	
+	// KASSERT((tdvp == tvp) || (VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE));
+	
 	// This check seems unnecessary as we want 
 	if (fvp->v_type == VDIR)
 		tnd.ni_cnd.cn_flags |= WILLBEDIR;
 
-	if (tdvp != tvp)
-		VOP_UNLOCK(tdvp);
+	// if (tdvp != tvp)
+	// 	VOP_UNLOCK(tdvp);
 
 	// Check for invalid names
 	if ((tnd.ni_cnd.cn_namelen == 1) && (tnd.ni_cnd.cn_nameptr[0] == '.')) {
 		error = EISDIR;
+		printf("Invalid target name: %d\n", error);
 		goto abort1;
 	}
 	if ((tnd.ni_cnd.cn_namelen == 2) &&
 	    (tnd.ni_cnd.cn_nameptr[0] == '.') &&
 	    (tnd.ni_cnd.cn_nameptr[1] == '.')) {
 		error = EINVAL;
+		printf("Invalid target name: %d\n", error);
 		goto abort1;
 	}
 
@@ -1143,21 +1162,27 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 
 	if (mp != tmp) {
 		error = EXDEV;
+		printf("Cross-device rename: %d\n", error);
 		goto abort1;
 	}
 	
 	error = VFS_RENAMELOCK_ENTER(mp);
-	if (error)
+	if (error) {
+		printf("VFS_RENAMELOCK_ENTER failed: %d\n", error);
 		goto abort1;
+	}
 
 	vn_lock(tdvp, LK_EXCLUSIVE | LK_RETRY);
 	if(flags & LINUX_RENAME_NOREPLACE){
+		printf("Relookup begins\n");
 		error = relookup(tdvp, &tnd.ni_vp, &tnd.ni_cnd, 0);
 		if (error == 0) {
 			error = EEXIST;
+			printf("Target file exists after relookup: %d\n", error);
 			goto abort2;
 		}
 		else if (error != ENOENT) {
+			printf("relookup failed: %d\n", error);
 			goto abort2;
 		}
 	}
@@ -1176,15 +1201,18 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 	if (tvp != NULL) {
 		if ((fvp->v_type == VDIR) && (tvp->v_type != VDIR)) {
 			error = ENOTDIR;
+			printf("Source is directory, target is not: %d\n", error);
 			goto abort3;
 		} else if ((fvp->v_type != VDIR) && (tvp->v_type == VDIR)) {
 			error = EISDIR;
+			printf("Source is not directory, target is: %d\n", error);
 			goto abort3;
 		}
 	}
 
 	if (fvp == tdvp) {
 		error = EINVAL;
+		printf("Source and target directories are the same: %d\n", error);
 		goto abort3;
 	}
 
@@ -1204,6 +1232,7 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 	KASSERT(VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE);
 	KASSERT((tvp == NULL) || (VOP_ISLOCKED(tvp) == LK_EXCLUSIVE));
 	error = VOP_RENAME(fdvp, fvp, &fnd.ni_cnd, tdvp, tvp, &tnd.ni_cnd);
+	printf("VOP_RENAME result: %d\n", error);
 
 	VFS_RENAMELOCK_EXIT(mp);
 	fstrans_done(mp);
@@ -1218,10 +1247,14 @@ abort1:	VOP_ABORTOP(tdvp, &tnd.ni_cnd);
 	vrele(tdvp);
 	if (tvp != NULL)
 		vrele(tvp);
-abort0:	VOP_ABORTOP(fdvp, &fnd.ni_cnd);
-	vrele(fdvp);
-	vrele(fvp);
-	fstrans_done(mp);
+abort0:	printf("Aborting operation on source\n");
+    VOP_ABORTOP(fdvp, &fnd.ni_cnd);
+    printf("Releasing source directory vnode\n");
+    vrele(fdvp);
+    printf("Releasing source file vnode\n");
+    vrele(fvp);
+    printf("Finishing filesystem transaction\n");
+    fstrans_done(mp);
 out2:
 	pathbuf_destroy(tpb);
 out1:

@@ -2206,7 +2206,7 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
 	if(cl_args.flags & unimplemented_flags)
 	{
 		printf("Unsupported flags for clone3: 0x%x\n", unimplemented_flags);
-		return EINVAL;
+		return EOPNOTSUPP;
 	}
 	if(cl_args.flags & ~(allowed_flags))
 	{
