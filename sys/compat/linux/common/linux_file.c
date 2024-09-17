@@ -951,7 +951,11 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 	fd_out = SCARG(uap, fd_out);
 
 	printf("Calling sys_copy_file_range\n");
-	// Check if flag value is 0 as expected
+	// print all the arguments
+	printf("fd_in = %d, fd_out = %d, off_in = %lld, off_out = %lld, len = %zu, flags = %u\n", 
+       fd_in, fd_out, 
+       (long long) SCARG(uap, off_in), (long long)SCARG(uap, off_out), 
+       SCARG(uap, len), SCARG(uap, flags));	// Check if flag value is 0 as expected
 	if(SCARG(uap, flags) != 0) {
 		printf("copy_file_range unsupported flags 0x%x\n", SCARG(uap, flags));
 		return EINVAL;
@@ -1009,6 +1013,8 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
             goto out;
         }
         have_off_in = true;
+		printf("copy_file_range: Initial off_in=%lld\n", (long long)off_in);
+
     }
 
     if (SCARG(uap, off_out) != NULL) {
@@ -1101,32 +1107,36 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
         bytes_left -= written_bytes;
 
         // Update offsets if provided
-        if (have_off_in) {
+		if (have_off_in) {
             off_in += written_bytes;
         }
+		else {
+			fp_in->f_offset += written_bytes;
+		}
         if (have_off_out) {
             off_out += written_bytes;
         }
+		else {
+			fp_out->f_offset += written_bytes;
+		}
     }
 
-    // Update the offsets in user space if provided
-    if (have_off_in) {
-        error = copyout(&off_in, SCARG(uap, off_in), sizeof(off_in));
-        if (error) {
-            // Partial copy success, but cannot update offset
-            *retval = total_copied;
-            goto out;
-        }
-    }
+	if (have_off_in) {
+		// Adjust user space offset
+		error = copyout(&off_in, SCARG(uap, off_in), sizeof(off_t));	
+		if (error) {
+			printf("copy_file_range: Error adjusting user space offset\n");
+		}
+	}
+	if (have_off_out) {
+		// Adjust user space offset
+		error = copyout(&off_out, SCARG(uap, off_out), sizeof(off_t));	
+		if (error) {
+			printf("copy_file_range: Error adjusting user space offset\n");
+		}
+	}
 
-    if (have_off_out) {
-        error = copyout(&off_out, SCARG(uap, off_out), sizeof(off_out));
-        if (error) {
-            // Partial copy success, but cannot update offset
-            *retval = total_copied;
-            goto out;
-        }
-    }
+    // }
 	printf("copy_file_range: total_copied = %zu\n", total_copied);
 
     *retval = total_copied;
