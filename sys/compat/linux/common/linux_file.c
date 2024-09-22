@@ -935,6 +935,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 	} */
 	int fd_in, fd_out;
 	file_t *fp_in, *fp_out;
+	struct vnode *invp, *outvp;
 	off_t off_in = 0, off_out = 0;
 	struct vattr vattr_in, vattr_out;
 	ssize_t total_copied = 0;
@@ -942,34 +943,28 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
     bool have_off_in = false, have_off_out = false;
 	int error = 0;
 	size_t len = SCARG(uap, len);
-
-	if (len > SSIZE_MAX) {
-		printf("copy_file_range: len is greater than SSIZE_MAX\n");
-		return EOVERFLOW;
-	}
+	unsigned int flags = SCARG(uap, flags);
 
 	// Structures for actual copy
 	char *buffer = NULL;
 	struct uio auio;
     struct iovec aiov;
 
-	fd_in = SCARG(uap, fd_in);
-	fd_out = SCARG(uap, fd_out);
-
 	printf("Calling sys_copy_file_range\n");
-	// // print all the arguments
-	// printf("fd_in = %d, fd_out = %d, off_in = %lld, off_out = %lld, len = %zu, flags = %u\n", 
-    //    fd_in, fd_out, 
-    //    (long long) SCARG(uap, off_in), (long long)SCARG(uap, off_out), 
-    //    SCARG(uap, len), SCARG(uap, flags));	// Check if flag value is 0 as expected
-	if(SCARG(uap, flags) != 0) {
-		printf("copy_file_range unsupported flags 0x%x\n", SCARG(uap, flags));
-		return EINVAL;
+
+	if (len > SSIZE_MAX) {
+		printf("copy_file_range: len is greater than SSIZE_MAX\n");
+		return EOVERFLOW;
 	}
 
-	// get vnode of input and output fds and check if they are regular files
+	if(flags != 0) {
+		printf("copy_file_range unsupported flags 0x%x\n", flags);
+		return EINVAL;
+	}
 	
-	 error = fd_getvnode(fd_in, &fp_in);
+	fd_in = SCARG(uap, fd_in);
+	fd_out = SCARG(uap, fd_out);
+	error = fd_getvnode(fd_in, &fp_in);
     if (error) {
         return error;
     }
@@ -979,27 +974,30 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
         fd_putfile(fd_in);
         return error;
     }
-
-	if ((fp_in->f_flag & FREAD) == 0 || (fp_out->f_flag & FWRITE) == 0 || (fp_out->f_flag & FAPPEND) != 0) {
-		printf("copy_file_range: input file can't be read or output file can't be written\n");
-		error = EBADF;
-		goto out;
-	}
 	
+	invp = fp_in->f_vnode;
+	outvp = fp_out->f_vnode;
+
 	// Get attributes of input and output files
-	VOP_GETATTR(fp_in->f_vnode, &vattr_in, l->l_cred);
-	VOP_GETATTR(fp_out->f_vnode, &vattr_out, l->l_cred);
+	VOP_GETATTR(invp, &vattr_in, l->l_cred);
+	VOP_GETATTR(outvp, &vattr_out, l->l_cred);
 	
 	// Check if input and output files are regular files
 	if (vattr_in.va_type == VDIR || vattr_out.va_type == VDIR) {
 		error = EISDIR;
 		printf("copy_file_range: Input or output is a directory\n");
 		goto out;
-	} else if ((SCARG(uap, off_in) != NULL && off_in < 0) || 
-	           (SCARG(uap, off_out) != NULL && off_out < 0) ||
+	} else if ((SCARG(uap, off_in) != NULL && *SCARG(uap, off_in) < 0) || 
+	           (SCARG(uap, off_out) != NULL && *SCARG(uap, off_out) < 0) ||
 	           vattr_in.va_type != VREG || vattr_out.va_type != VREG) {
 		error = EINVAL;
 		printf("copy_file_range: Invalid offset or file type\n");
+		goto out;
+	}
+
+	if ((fp_in->f_flag & FREAD) == 0 || (fp_out->f_flag & FWRITE) == 0 || (fp_out->f_flag & FAPPEND) != 0) {
+		printf("copy_file_range: input file can't be read or output file can't be written\n");
+		error = EBADF;
 		goto out;
 	}
 	
@@ -1013,6 +1011,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 		printf("copy_file_range: Initial off_in=%lld\n", (long long)off_in);
 
     }
+	
 
     if (SCARG(uap, off_out) != NULL) {
         error = copyin(SCARG(uap, off_out), &off_out, sizeof(off_out));
@@ -1021,8 +1020,9 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
         }
         have_off_out = true;
     }
+	
 
-	off_t new_size = (have_off_out ? off_out : fp_out->f_offset) + len;
+	off_t new_size = off_out + len;
 	printf("new_size = %lld\n", (long long)new_size);
 	if (new_size < 0) {
 		printf("copy_file_range: New size is greater than OFF_MAX\n");
@@ -1031,7 +1031,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 	}
 
 	// Identify overlapping ranges
-	if ((fp_in->f_vnode == fp_out->f_vnode) &&
+	if ((invp == outvp) &&
 		((off_in <= off_out && off_in + (off_t)len > off_out) ||
 		(off_in > off_out && off_out + (off_t)len > off_in))) {
 			printf("copy_file_range: Ranges overlap\n");
@@ -1039,6 +1039,8 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
             goto out;
 		}
 
+
+	
 
 	buffer = kmem_alloc(LINUX_COPY_FILE_RANGE_MAX_CHUNK, KM_SLEEP);
     
