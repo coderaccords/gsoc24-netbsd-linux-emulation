@@ -936,16 +936,15 @@ linux_sys_sync_file_range(lwp_t *l,
 	    ((SCARG(uap, flags) & ~LINUX_SYNC_FILE_RANGE_ALL) != 0))
 		return EINVAL;
 
-	// Fill ua with uap
+	/* Fill ua with uap */
 	SCARG(&ua, fd) = SCARG(uap, fd);
 	SCARG(&ua, flags) = SCARG(uap, flags);
 
-	// To-Do: Manage page boundaries for offset and length
-	// Round down offset to page boundary
+	/* Round down offset to page boundary */
 	SCARG(&ua, start) = rounddown(SCARG(uap, offset), PAGE_SIZE);
 	SCARG(&ua, length) = SCARG(uap, nbytes);
 	if (SCARG(&ua, length) != 0) {
-		// Round up length to nbytes+offset to page boundary
+		/* Round up length to nbytes+offset to page boundary */
 		SCARG(&ua, length) = roundup(SCARG(uap, nbytes)
 		    + SCARG(uap, offset) - SCARG(&ua, start), PAGE_SIZE);	
 	}
@@ -968,11 +967,11 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
 	
 	fd = SCARG(uap, fd);
 	
-	// Get file pointer
+	/* Get file pointer */
 	if ((error = fd_getvnode(fd, &fp)) != 0)
 		return error;
     
-	// Get vnode and mount point
+	/* Get vnode and mount point */
 	vp = fp->f_vnode;
 	mp = vp->v_mount;
     
@@ -987,7 +986,7 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
 	mutex_exit(mp->mnt_updating);
 
 	
-	// Cleanup vnode and file pointer
+	/* Cleanup vnode and file pointer */
 	vrele(vp);
 	fd_putfile(fd);
 	return 0;
@@ -1005,262 +1004,31 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 		syscallarg(unsigned int) flags;
 	} */
 
-	printf("linux_sys_renameat2: uap=%p\n", uap);
-	int fromfd = SCARG(uap, fromfd);
-	const char *from = SCARG(uap, from);
-	int tofd = SCARG(uap, tofd);
-	const char *to = SCARG(uap, to);
+	struct sys_renameat_args ua;
+	SCARG(&ua, fromfd) = SCARG(uap, fromfd);
+	SCARG(&ua, from) = SCARG(uap, from);
+	SCARG(&ua, tofd) = SCARG(uap, tofd);
+	SCARG(&ua, to) = SCARG(uap, to);
+
 	int unsigned flags = SCARG(uap, flags);
-	enum uio_seg seg = UIO_USERSPACE;
-	int retain = 0;
-	
-	struct pathbuf *fpb, *tpb;
-	struct nameidata fnd, tnd;
-	struct vnode *fdvp, *fvp;
-	struct vnode *tdvp, *tvp;
-	struct mount *mp, *tmp;
 	int error;
 
- 	printf("linux_sys_renameat2: fromfd=%d, from=%s, tofd=%d, to=%s, flags=%u\n", fromfd, from, tofd, to, flags);
-
-	// if flags is 0, then it is a simple rename
-	if (flags == 0) {
-		struct sys_renameat_args ua;
-		SCARG(&ua, fromfd) = fromfd;
-		SCARG(&ua, from) = from;
-		SCARG(&ua, tofd) = tofd;
-		SCARG(&ua, to) = to;
-		return sys_renameat(l, &ua, retval);
-	}
-	
-
-	if ((flags & ~LINUX_RENAME_ALL) != 0)
-		return EINVAL;
-
-	if ((flags & LINUX_RENAME_EXCHANGE) != 0 && 
-	    (flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)) != 0)
-		return EINVAL;
-
-	// If LINUX_RENAME_WHITEOUT is used return EOPNOTSUPP
-	if (flags & LINUX_RENAME_WHITEOUT)
-		return EINVAL;
-
-	if (flags & LINUX_RENAME_EXCHANGE)
-		return EINVAL;
-
-
-	KASSERT(l != NULL || fromfd == AT_FDCWD);
-	KASSERT(l != NULL || tofd == AT_FDCWD);
-
-	error = pathbuf_maybe_copyin(from, seg, &fpb);
-	if (error) {
-		printf("pathbuf_maybe_copyin from failed: %d\n", error);
-		goto out0;
-	}
-	KASSERT(fpb != NULL);
-
-	error = pathbuf_maybe_copyin(to, seg, &tpb);
-	if (error) {
-		printf("pathbuf_maybe_copyin to failed: %d\n", error);
-		goto out1;
-	}
-	KASSERT(tpb != NULL);
-
-
-	// Lookup source
-	printf("Lookup source\n");
-	NDINIT(&fnd, DELETE, (LOCKPARENT | TRYEMULROOT), fpb);
-	if ((error = fd_nameiat(l, fromfd, &fnd)) != 0) {
-		printf("fd_nameiat from failed: %d\n", error);
-		goto out2;
-	}
-	printf("Lookup source done\n");
-
-
-	fdvp = fnd.ni_dvp;
-	fvp = fnd.ni_vp;
-	mp = fdvp->v_mount;
-	KASSERT(fdvp != NULL);
-	KASSERT(fvp != NULL);
-	KASSERT((fdvp == fvp) || (VOP_ISLOCKED(fdvp) == LK_EXCLUSIVE));
-
-	fstrans_start(mp);
-
-	// This is probably done for lookup of to to be successful
-	// in case it is in the same directory as from and also to 
-	// check fulfill requirements for VOP_RENAME
-	if (fdvp != fvp)
-		VOP_UNLOCK(fdvp);
-
-	// Reject renaming `.' and `..'. 
-	if (((fnd.ni_cnd.cn_namelen == 1) &&
-		(fnd.ni_cnd.cn_nameptr[0] == '.')) ||
-	    ((fnd.ni_cnd.cn_namelen == 2) &&
-		(fnd.ni_cnd.cn_nameptr[0] == '.') &&
-		(fnd.ni_cnd.cn_nameptr[1] == '.'))) {
-		error = EINVAL;
-		printf("Invalid source name: %d\n", error);
-		goto abort0;
+	if(flags != 0){
+		if (flags & ~LINUX_RENAME_ALL)
+			return EINVAL;
+		if ((flags & LINUX_RENAME_EXCHANGE) != 0 && 
+		    (flags & (LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT)) != 0)
+			return EINVAL;
+		/*
+		 * Suppoting renameat2 flags without support from file systems
+		 * becomes a messy affair cause of locks and how VOP_RENAME 
+		 * protocol is implemented. So, return EOPNOTSUPP for now.
+		*/
+		return EOPNOTSUPP;
 	}
 
-	// XXX: this should happen inside the native rename operation.
-	// Can't be done using a separate namei because it is not atomic...
-	// (another process/thread can put the file between the lookup
-	// and the rename)
-	// Handle LINUX_RENAME_NOREPLACE
-	// Do lookup of to depending on flags
-	if (flags & LINUX_RENAME_NOREPLACE) {
-		printf("LINUX_RENAME_NOREPLACE\n");
-		// perform lookup of to
-		printf("Lookup target\n");
-		NDINIT(&tnd, LOOKUP, ( NOCACHE | TRYEMULROOT), tpb);
-		// If the file already exists, return EEXIST
-		error = fd_nameiat(l, tofd, &tnd);
-		printf("Lookup target done\n");
-		if (error == 0) {
-			error = EEXIST;
-			printf("Target file exists: %d\n", error);
-			goto abort0;
-		}
-		else if (error != ENOENT) {
-			printf("fd_nameiat to failed: %d\n", error);
-			goto abort0;
-		}
-	}
-
-	tdvp = tnd.ni_dvp;
-	tvp = tnd.ni_vp;
-	//shiv: This assertion is failing why so? 
-	KASSERT(tdvp != NULL);
-	
-	// KASSERT((tdvp == tvp) || (VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE));
-	
-	// This check seems unnecessary as we want 
-	if (fvp->v_type == VDIR)
-		tnd.ni_cnd.cn_flags |= WILLBEDIR;
-
-	// if (tdvp != tvp)
-	// 	VOP_UNLOCK(tdvp);
-
-	// Check for invalid names
-	if ((tnd.ni_cnd.cn_namelen == 1) && (tnd.ni_cnd.cn_nameptr[0] == '.')) {
-		error = EISDIR;
-		printf("Invalid target name: %d\n", error);
-		goto abort1;
-	}
-	if ((tnd.ni_cnd.cn_namelen == 2) &&
-	    (tnd.ni_cnd.cn_nameptr[0] == '.') &&
-	    (tnd.ni_cnd.cn_nameptr[1] == '.')) {
-		error = EINVAL;
-		printf("Invalid target name: %d\n", error);
-		goto abort1;
-	}
-
-	// Check for cross-device rename
-	KASSERT(mp != NULL);
-	tmp = tdvp->v_mount;
-
-	if (mp != tmp) {
-		error = EXDEV;
-		printf("Cross-device rename: %d\n", error);
-		goto abort1;
-	}
-	
-	error = VFS_RENAMELOCK_ENTER(mp);
-	if (error) {
-		printf("VFS_RENAMELOCK_ENTER failed: %d\n", error);
-		goto abort1;
-	}
-
-	vn_lock(tdvp, LK_EXCLUSIVE | LK_RETRY);
-	if(flags & LINUX_RENAME_NOREPLACE){
-		printf("Relookup begins\n");
-		error = relookup(tdvp, &tnd.ni_vp, &tnd.ni_cnd, 0);
-		if (error == 0) {
-			error = EEXIST;
-			printf("Target file exists after relookup: %d\n", error);
-			goto abort2;
-		}
-		else if (error != ENOENT) {
-			printf("relookup failed: %d\n", error);
-			goto abort2;
-		}
-	}
-
-	// Update vnode pointer for target
-	if (tvp != NULL)
-		vrele(tvp);
-	tvp = tnd.ni_vp;
-	KASSERT(VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE);
-	KASSERT((tvp == NULL) || (VOP_ISLOCKED(tvp) == LK_EXCLUSIVE));
-
-	/*
-	 * Acknowledge that directories and non-directories aren't
-	 * supposed to mix.
-	 */
-	if (tvp != NULL) {
-		if ((fvp->v_type == VDIR) && (tvp->v_type != VDIR)) {
-			error = ENOTDIR;
-			printf("Source is directory, target is not: %d\n", error);
-			goto abort3;
-		} else if ((fvp->v_type != VDIR) && (tvp->v_type == VDIR)) {
-			error = EISDIR;
-			printf("Source is not directory, target is: %d\n", error);
-			goto abort3;
-		}
-	}
-
-	if (fvp == tdvp) {
-		error = EINVAL;
-		printf("Source and target directories are the same: %d\n", error);
-		goto abort3;
-	}
-
-	if (fvp == tvp) {
-		if (retain) {
-			error = 0;
-			goto abort3;
-		} else if ((fdvp == tdvp) &&
-		    (fnd.ni_cnd.cn_namelen == tnd.ni_cnd.cn_namelen) &&
-		    (0 == memcmp(fnd.ni_cnd.cn_nameptr, tnd.ni_cnd.cn_nameptr,
-			fnd.ni_cnd.cn_namelen))) {
-			error = 0;
-			goto abort3;
-		}
-	}
-
-	KASSERT(VOP_ISLOCKED(tdvp) == LK_EXCLUSIVE);
-	KASSERT((tvp == NULL) || (VOP_ISLOCKED(tvp) == LK_EXCLUSIVE));
-	error = VOP_RENAME(fdvp, fvp, &fnd.ni_cnd, tdvp, tvp, &tnd.ni_cnd);
-	printf("VOP_RENAME result: %d\n", error);
-
-	VFS_RENAMELOCK_EXIT(mp);
-	fstrans_done(mp);
-	goto out2;
-
-
-abort3:	if ((tvp != NULL) && (tvp != tdvp))
-		VOP_UNLOCK(tvp);
-abort2:	VOP_UNLOCK(tdvp);
-	VFS_RENAMELOCK_EXIT(mp);
-abort1:	VOP_ABORTOP(tdvp, &tnd.ni_cnd);
-	vrele(tdvp);
-	if (tvp != NULL)
-		vrele(tvp);
-abort0:	printf("Aborting operation on source\n");
-    VOP_ABORTOP(fdvp, &fnd.ni_cnd);
-    printf("Releasing source directory vnode\n");
-    vrele(fdvp);
-    printf("Releasing source file vnode\n");
-    vrele(fvp);
-    printf("Finishing filesystem transaction\n");
-    fstrans_done(mp);
-out2:
-	pathbuf_destroy(tpb);
-out1:
-	pathbuf_destroy(fpb);
-out0:
-return error;
+	error = sys_renameat(l, &ua, retval);
+	return error;
 }
 
 
