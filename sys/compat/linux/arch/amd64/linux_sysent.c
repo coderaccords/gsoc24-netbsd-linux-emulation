@@ -1463,8 +1463,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 325 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 326 = filler */
+		ns(struct linux_sys_copy_file_range_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_copy_file_range
+	},		/* 326 = copy_file_range */
 	{
 		.sy_call = linux_sys_nosys,
 	},		/* 327 = filler */

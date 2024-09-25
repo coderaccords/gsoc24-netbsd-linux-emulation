@@ -394,7 +394,7 @@ const char *const linux_syscallnames[] = {
 	/* 323 */	"#323 (unimplemented userfaultfd)",
 	/* 324 */	"#324 (unimplemented membarrier)",
 	/* 325 */	"#325 (unimplemented mlock2)",
-	/* 326 */	"#326 (unimplemented copy_file_range)",
+	/* 326 */	"copy_file_range",
 	/* 327 */	"#327 (unimplemented preadv2)",
 	/* 328 */	"#328 (unimplemented pwritev2)",
 	/* 329 */	"#329 (unimplemented pkey_mprotect)",
@@ -938,7 +938,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 323 */	NULL, /* unimplemented userfaultfd */
 	/* 324 */	NULL, /* unimplemented membarrier */
 	/* 325 */	NULL, /* unimplemented mlock2 */
-	/* 326 */	NULL, /* unimplemented copy_file_range */
+	/* 326 */	NULL, /* copy_file_range */
 	/* 327 */	NULL, /* unimplemented preadv2 */
 	/* 328 */	NULL, /* unimplemented pwritev2 */
 	/* 329 */	NULL, /* unimplemented pkey_mprotect */

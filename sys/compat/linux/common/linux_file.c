@@ -37,6 +37,8 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: linux_file.c,v 1.123 2023/07/10 02:31:55 christos Exp $");
 
+// #define _LARGEFILE64_SOURCE
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/namei.h>
@@ -68,6 +70,8 @@ __KERNEL_RCSID(0, "$NetBSD: linux_file.c,v 1.123 2023/07/10 02:31:55 christos Ex
 #include <compat/linux/common/linux_sem.h>
 
 #include <compat/linux/linux_syscallargs.h>
+
+#define LINUX_COPY_FILE_RANGE_MAX_CHUNK 8192
 
 static int bsd_to_linux_ioflags(int);
 #if !defined(__aarch64__) && !defined(__amd64__)
@@ -1029,6 +1033,242 @@ linux_sys_renameat2(struct lwp *l, const struct linux_sys_renameat2_args *uap,
 
 	error = sys_renameat(l, &ua, retval);
 	return error;
+}
+
+int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_args *uap, register_t *retval)
+{
+	/* {
+		syscallarg(int) fd_in;
+		syscallarg(unsigned long) off_in;
+		syscallarg(int) fd_out;
+		syscallarg(unsigned long) off_out;
+		syscallarg(size_t) len;
+		syscallarg(unsigned int) flags;
+	} */
+	int fd_in, fd_out;
+	file_t *fp_in, *fp_out;
+	struct vnode *invp, *outvp;
+	off_t off_in = 0, off_out = 0;
+	struct vattr vattr_in, vattr_out;
+	ssize_t total_copied = 0;
+    size_t bytes_left, to_copy;
+    bool have_off_in = false, have_off_out = false;
+	int error = 0;
+	size_t len = SCARG(uap, len);
+	unsigned int flags = SCARG(uap, flags);
+
+	// Structures for actual copy
+	char *buffer = NULL;
+	struct uio auio;
+    struct iovec aiov;
+
+	printf("Calling sys_copy_file_range\n");
+
+	if (len > SSIZE_MAX) {
+		printf("copy_file_range: len is greater than SSIZE_MAX\n");
+		return EOVERFLOW;
+	}
+
+	if(flags != 0) {
+		printf("copy_file_range unsupported flags 0x%x\n", flags);
+		return EINVAL;
+	}
+	
+	fd_in = SCARG(uap, fd_in);
+	fd_out = SCARG(uap, fd_out);
+	error = fd_getvnode(fd_in, &fp_in);
+    if (error) {
+        return error;
+    }
+
+    error = fd_getvnode(fd_out, &fp_out);
+    if (error) {
+        fd_putfile(fd_in);
+        return error;
+    }
+	
+	invp = fp_in->f_vnode;
+	outvp = fp_out->f_vnode;
+
+	// Get attributes of input and output files
+	VOP_GETATTR(invp, &vattr_in, l->l_cred);
+	VOP_GETATTR(outvp, &vattr_out, l->l_cred);
+	
+	// Check if input and output files are regular files
+	if (vattr_in.va_type == VDIR || vattr_out.va_type == VDIR) {
+		error = EISDIR;
+		printf("copy_file_range: Input or output is a directory\n");
+		goto out;
+	} else if ((SCARG(uap, off_in) != NULL && *SCARG(uap, off_in) < 0) || 
+	           (SCARG(uap, off_out) != NULL && *SCARG(uap, off_out) < 0) ||
+	           vattr_in.va_type != VREG || vattr_out.va_type != VREG) {
+		error = EINVAL;
+		printf("copy_file_range: Invalid offset or file type\n");
+		goto out;
+	}
+
+	if ((fp_in->f_flag & FREAD) == 0 || (fp_out->f_flag & FWRITE) == 0 || (fp_out->f_flag & FAPPEND) != 0) {
+		printf("copy_file_range: input file can't be read or output file can't be written\n");
+		error = EBADF;
+		goto out;
+	}
+	
+	//  Retrieve and validate offsets if provided 
+    if (SCARG(uap, off_in) != NULL) {
+        error = copyin(SCARG(uap, off_in), &off_in, sizeof(off_in));
+        if (error) {
+            goto out;
+        }
+        have_off_in = true;
+		printf("copy_file_range: Initial off_in=%lld\n", (long long)off_in);
+
+    }
+	
+
+    if (SCARG(uap, off_out) != NULL) {
+        error = copyin(SCARG(uap, off_out), &off_out, sizeof(off_out));
+        if (error) {
+            goto out;
+        }
+        have_off_out = true;
+    }
+	
+
+	off_t new_size = off_out + len;
+	printf("new_size = %lld\n", (long long)new_size);
+	if (new_size < 0) {
+		printf("copy_file_range: New size is greater than OFF_MAX\n");
+		error = EFBIG;
+		goto out;
+	}
+
+	// Identify overlapping ranges
+	if ((invp == outvp) &&
+		((off_in <= off_out && off_in + (off_t)len > off_out) ||
+		(off_in > off_out && off_out + (off_t)len > off_in))) {
+			printf("copy_file_range: Ranges overlap\n");
+            error = EINVAL;
+            goto out;
+		}
+
+
+	
+
+	buffer = kmem_alloc(LINUX_COPY_FILE_RANGE_MAX_CHUNK, KM_SLEEP);
+    
+	// Allocation cannot fail, so no need for error handling?
+	if (buffer == NULL) {
+        error = ENOMEM;
+        goto out;
+    }
+
+	// bytes_left = SCARG(uap, len);
+	bytes_left = len;
+
+	 while (bytes_left > 0) {
+        to_copy = MIN(bytes_left, LINUX_COPY_FILE_RANGE_MAX_CHUNK);
+		
+		// Lock the input vnode for reading
+		vn_lock(fp_in->f_vnode, LK_SHARED | LK_RETRY);
+
+        // Set up iovec and uio for reading
+        aiov.iov_base = buffer;
+        aiov.iov_len = to_copy;
+        auio.uio_iov = &aiov;
+        auio.uio_iovcnt = 1;
+        auio.uio_offset = have_off_in ? off_in : fp_in->f_offset;
+        auio.uio_resid = to_copy;
+        auio.uio_rw = UIO_READ;
+        auio.uio_vmspace = l->l_proc->p_vmspace;
+		UIO_SETUP_SYSSPACE(&auio);
+
+
+		// Perform read using vn_read
+        error = VOP_READ(fp_in->f_vnode, &auio, 0, l->l_cred);
+		VOP_UNLOCK(fp_in->f_vnode);
+        if (error) {
+			printf("copy_file_range Read error: = %d\n", error);
+            break;
+        }
+
+        size_t read_bytes = to_copy - auio.uio_resid;
+        if (read_bytes == 0) {
+            // EOF reached
+            break;
+        }
+
+		// Lock the output vnode for writing
+		vn_lock(fp_out->f_vnode, LK_EXCLUSIVE | LK_RETRY);
+	
+        // Set up iovec and uio for writing
+        aiov.iov_base = buffer;
+        aiov.iov_len = read_bytes;
+        auio.uio_iov = &aiov;
+        auio.uio_iovcnt = 1;
+        auio.uio_offset = have_off_out ? off_out : fp_out->f_offset;
+        auio.uio_resid = read_bytes;
+        auio.uio_rw = UIO_WRITE;
+        auio.uio_vmspace = l->l_proc->p_vmspace;
+		UIO_SETUP_SYSSPACE(&auio);
+
+        // Perform the write
+        error = VOP_WRITE(fp_out->f_vnode, &auio, 0, l->l_cred);
+		VOP_UNLOCK(fp_out->f_vnode);
+        if (error) {
+			printf("copy_file_range Write error: = %d\n", error);
+            break;
+        }
+
+        size_t written_bytes = read_bytes - auio.uio_resid;
+        total_copied += written_bytes;
+        bytes_left -= written_bytes;
+
+        // Update offsets if provided
+		if (have_off_in) {
+            off_in += written_bytes;
+        }
+		else {
+			fp_in->f_offset += written_bytes;
+		}
+        if (have_off_out) {
+            off_out += written_bytes;
+        }
+		else {
+			fp_out->f_offset += written_bytes;
+		}
+    }
+
+	if (have_off_in) {
+		// Adjust user space offset
+		error = copyout(&off_in, SCARG(uap, off_in), sizeof(off_t));	
+		if (error) {
+			printf("copy_file_range: Error adjusting user space offset\n");
+		}
+	}
+	if (have_off_out) {
+		// Adjust user space offset
+		error = copyout(&off_out, SCARG(uap, off_out), sizeof(off_t));	
+		if (error) {
+			printf("copy_file_range: Error adjusting user space offset\n");
+		}
+	}
+
+    // }
+	printf("copy_file_range: total_copied = %zu\n", total_copied);
+
+    *retval = total_copied;
+
+out:
+    if (buffer) {
+        kmem_free(buffer, LINUX_COPY_FILE_RANGE_MAX_CHUNK);
+    }
+    if (fp_out) {
+        fd_putfile(fd_out);
+    }
+    if (fp_in) {
+        fd_putfile(fd_in);
+    }
+    return error;
 }
 
 

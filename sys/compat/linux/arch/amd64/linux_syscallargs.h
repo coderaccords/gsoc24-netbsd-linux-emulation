@@ -1232,6 +1232,16 @@ struct linux_sys_memfd_create_args {
 };
 check_syscall_args(linux_sys_memfd_create)
 
+struct linux_sys_copy_file_range_args {
+	syscallarg(int) fd_in;
+	syscallarg(off_t *) off_in;
+	syscallarg(int) fd_out;
+	syscallarg(off_t *) off_out;
+	syscallarg(size_t) len;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_copy_file_range)
+
 struct linux_sys_statx_args {
 	syscallarg(int) fd;
 	syscallarg(const char *) path;
@@ -1773,6 +1783,8 @@ int	linux_sys_renameat2(struct lwp *, const struct linux_sys_renameat2_args *, r
 int	sys_getrandom(struct lwp *, const struct sys_getrandom_args *, register_t *);
 
 int	linux_sys_memfd_create(struct lwp *, const struct linux_sys_memfd_create_args *, register_t *);
+
+int	linux_sys_copy_file_range(struct lwp *, const struct linux_sys_copy_file_range_args *, register_t *);
 
 int	linux_sys_statx(struct lwp *, const struct linux_sys_statx_args *, register_t *);
 
