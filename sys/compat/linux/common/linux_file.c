@@ -968,7 +968,6 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
 	struct vnode *vp;
 	file_t *fp;
 	int error, fd;
-	
 	fd = SCARG(uap, fd);
 	
 	/* Get file pointer */
@@ -988,7 +987,6 @@ linux_sys_syncfs(lwp_t *l, const struct linux_sys_syncfs_args *uap,
 			mp->mnt_flag |= MNT_ASYNC;
 	}
 	mutex_exit(mp->mnt_updating);
-
 	
 	/* Cleanup vnode and file pointer */
 	vrele(vp);
@@ -1045,6 +1043,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 		syscallarg(size_t) len;
 		syscallarg(unsigned int) flags;
 	} */
+
 	int fd_in, fd_out;
 	file_t *fp_in, *fp_out;
 	struct vnode *invp, *outvp;
@@ -1062,7 +1061,6 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 	struct uio auio;
     struct iovec aiov;
 
-	printf("Calling sys_copy_file_range\n");
 
 	if (len > SSIZE_MAX) {
 		printf("copy_file_range: len is greater than SSIZE_MAX\n");
@@ -1112,7 +1110,6 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 		error = EBADF;
 		goto out;
 	}
-	
 	//  Retrieve and validate offsets if provided 
     if (SCARG(uap, off_in) != NULL) {
         error = copyin(SCARG(uap, off_in), &off_in, sizeof(off_in));
@@ -1120,10 +1117,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
             goto out;
         }
         have_off_in = true;
-		printf("copy_file_range: Initial off_in=%lld\n", (long long)off_in);
-
     }
-	
 
     if (SCARG(uap, off_out) != NULL) {
         error = copyin(SCARG(uap, off_out), &off_out, sizeof(off_out));
@@ -1133,10 +1127,8 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
         have_off_out = true;
     }
 	
-
 	off_t new_size = off_out + len;
-	printf("new_size = %lld\n", (long long)new_size);
-	if (new_size < 0) {
+	if (new_size < 0 ) {
 		printf("copy_file_range: New size is greater than OFF_MAX\n");
 		error = EFBIG;
 		goto out;
@@ -1151,26 +1143,20 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
             goto out;
 		}
 
-
-	
-
 	buffer = kmem_alloc(LINUX_COPY_FILE_RANGE_MAX_CHUNK, KM_SLEEP);
-    
 	// Allocation cannot fail, so no need for error handling?
 	if (buffer == NULL) {
         error = ENOMEM;
         goto out;
     }
 
-	// bytes_left = SCARG(uap, len);
 	bytes_left = len;
 
-	 while (bytes_left > 0) {
+	while (bytes_left > 0) {
         to_copy = MIN(bytes_left, LINUX_COPY_FILE_RANGE_MAX_CHUNK);
 		
 		// Lock the input vnode for reading
 		vn_lock(fp_in->f_vnode, LK_SHARED | LK_RETRY);
-
         // Set up iovec and uio for reading
         aiov.iov_base = buffer;
         aiov.iov_len = to_copy;
@@ -1181,7 +1167,6 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
         auio.uio_rw = UIO_READ;
         auio.uio_vmspace = l->l_proc->p_vmspace;
 		UIO_SETUP_SYSSPACE(&auio);
-
 
 		// Perform read using vn_read
         error = VOP_READ(fp_in->f_vnode, &auio, 0, l->l_cred);
@@ -1199,7 +1184,6 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 
 		// Lock the output vnode for writing
 		vn_lock(fp_out->f_vnode, LK_EXCLUSIVE | LK_RETRY);
-	
         // Set up iovec and uio for writing
         aiov.iov_base = buffer;
         aiov.iov_len = read_bytes;
@@ -1218,7 +1202,6 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 			printf("copy_file_range Write error: = %d\n", error);
             break;
         }
-
         size_t written_bytes = read_bytes - auio.uio_resid;
         total_copied += written_bytes;
         bytes_left -= written_bytes;
@@ -1245,6 +1228,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 			printf("copy_file_range: Error adjusting user space offset\n");
 		}
 	}
+
 	if (have_off_out) {
 		// Adjust user space offset
 		error = copyout(&off_out, SCARG(uap, off_out), sizeof(off_t));	
@@ -1253,11 +1237,7 @@ int linux_sys_copy_file_range(lwp_t *l, const struct linux_sys_copy_file_range_a
 		}
 	}
 
-    // }
-	printf("copy_file_range: total_copied = %zu\n", total_copied);
-
     *retval = total_copied;
-
 out:
     if (buffer) {
         kmem_free(buffer, LINUX_COPY_FILE_RANGE_MAX_CHUNK);
