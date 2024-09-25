@@ -2214,6 +2214,18 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
 		return EINVAL;
 	}
 
+	if ((cl_args.flags & ~(uint64_t)LINUX_CLONE_CSIGNAL) != 0)
+		return (EINVAL);
+
+	if (cl_args.stack == 0 && cl_args.stack_size != 0) {
+		printf("Stack is NULL but stack size is not 0\n");
+        return EINVAL;
+    }
+    if (cl_args.stack != 0 && cl_args.stack_size == 0) {
+		printf("Stack is not NULL but stack size is 0\n");
+        return EINVAL;
+    }
+
 	SCARG(&clone_args, flags) = (int)(cl_args.flags & allowed_flags);
     SCARG(&clone_args, stack) = (void *)cl_args.stack;
     SCARG(&clone_args, parent_tidptr) = (void *)cl_args.parent_tid;
