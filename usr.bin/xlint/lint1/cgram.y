@@ -1,5 +1,5 @@
 %{
-/* $NetBSD: cgram.y,v 1.503 2024/05/12 09:07:41 rillig Exp $ */
+/* $NetBSD: cgram.y,v 1.507 2024/08/29 20:35:19 rillig Exp $ */
 
 /*
  * Copyright (c) 1996 Christopher G. Demetriou.  All Rights Reserved.
@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 #if defined(__RCSID)
-__RCSID("$NetBSD: cgram.y,v 1.503 2024/05/12 09:07:41 rillig Exp $");
+__RCSID("$NetBSD: cgram.y,v 1.507 2024/08/29 20:35:19 rillig Exp $");
 #endif
 
 #include <limits.h>
@@ -154,7 +154,7 @@ new_attribute(const sbuf_t *prefix, const sbuf_t *name,
 
 %}
 
-%expect 103
+%expect 110
 
 %union {
 	val_t	*y_val;
@@ -1055,6 +1055,10 @@ begin_type:
 	/* empty */ {
 		dcs_begin_type();
 	}
+|	attribute_specifier_sequence {
+		dcs_begin_type();
+		dcs->d_used = attributes_contain(&$1, "maybe_unused");
+	}
 ;
 
 end_type:
@@ -1109,7 +1113,8 @@ type_init_declarator:
 		begin_initialization($1);
 		cgram_declare($1, true, $2);
 	} T_ASSIGN initializer {
-		check_size($1);
+		if ($1->s_type->t_tspec != AUTO_TYPE)
+			check_size($1);
 		end_initialization();
 	}
 ;
@@ -2108,6 +2113,11 @@ expression_statement:
 		debug_attribute_list(&$1);
 		expr($2, false, false, false, false);
 		suppress_fallthrough = false;
+	}
+|	attribute_specifier_sequence T_SEMI {
+		debug_attribute_list(&$1);
+		check_statement_reachable();
+		suppress_fallthrough = attributes_contain(&$1, "fallthrough");
 	}
 ;
 

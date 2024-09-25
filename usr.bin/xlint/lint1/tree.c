@@ -1,4 +1,4 @@
-/*	$NetBSD: tree.c,v 1.643 2024/05/12 09:07:41 rillig Exp $	*/
+/*	$NetBSD: tree.c,v 1.651 2024/08/19 04:47:50 rillig Exp $	*/
 
 /*
  * Copyright (c) 1994, 1995 Jochen Pohl
@@ -37,7 +37,7 @@
 
 #include <sys/cdefs.h>
 #if defined(__RCSID)
-__RCSID("$NetBSD: tree.c,v 1.643 2024/05/12 09:07:41 rillig Exp $");
+__RCSID("$NetBSD: tree.c,v 1.651 2024/08/19 04:47:50 rillig Exp $");
 #endif
 
 #include <float.h>
@@ -55,7 +55,6 @@ typedef struct integer_constraints {
 	int64_t		smax;	/* signed maximum */
 	uint64_t	umin;	/* unsigned minimum */
 	uint64_t	umax;	/* unsigned maximum */
-	uint64_t	bset;	/* bits that are definitely set */
 	uint64_t	bclr;	/* bits that are definitely clear */
 } integer_constraints;
 
@@ -119,14 +118,12 @@ ic_any(const type_t *tp)
 		c.smax = INT64_MAX;
 		c.umin = 0;
 		c.umax = vbits;
-		c.bset = 0;
 		c.bclr = ~c.umax;
 	} else {
 		c.smin = (int64_t)-1 - (int64_t)(vbits >> 1);
 		c.smax = (int64_t)(vbits >> 1);
 		c.umin = 0;
 		c.umax = UINT64_MAX;
-		c.bset = 0;
 		c.bclr = 0;
 	}
 	return c;
@@ -144,7 +141,6 @@ ic_con(const type_t *tp, const val_t *v)
 	c.smax = si;
 	c.umin = ui;
 	c.umax = ui;
-	c.bset = ui;
 	c.bclr = ~ui;
 	return c;
 }
@@ -172,8 +168,7 @@ ic_bitand(integer_constraints a, integer_constraints b)
 	c.smin = INT64_MIN;
 	c.smax = INT64_MAX;
 	c.umin = 0;
-	c.umax = UINT64_MAX;
-	c.bset = a.bset & b.bset;
+	c.umax = ~(a.bclr | b.bclr);
 	c.bclr = a.bclr | b.bclr;
 	return c;
 }
@@ -186,8 +181,7 @@ ic_bitor(integer_constraints a, integer_constraints b)
 	c.smin = INT64_MIN;
 	c.smax = INT64_MAX;
 	c.umin = 0;
-	c.umax = UINT64_MAX;
-	c.bset = a.bset | b.bset;
+	c.umax = ~(a.bclr & b.bclr);
 	c.bclr = a.bclr & b.bclr;
 	return c;
 }
@@ -204,7 +198,22 @@ ic_mod(const type_t *tp, integer_constraints a, integer_constraints b)
 	c.smax = INT64_MAX;
 	c.umin = 0;
 	c.umax = b.umax - 1;
-	c.bset = 0;
+	c.bclr = ~u64_fill_right(c.umax);
+	return c;
+}
+
+static integer_constraints
+ic_div(const type_t *tp, integer_constraints a, integer_constraints b)
+{
+	integer_constraints c;
+
+	if (ic_maybe_signed(tp, &a) || ic_maybe_signed(tp, &b) || b.umin == 0)
+		return ic_any(tp);
+
+	c.smin = INT64_MIN;
+	c.smax = INT64_MAX;
+	c.umin = a.umin / b.umax;
+	c.umax = a.umax / b.umin;
 	c.bclr = ~u64_fill_right(c.umax);
 	return c;
 }
@@ -229,7 +238,6 @@ ic_shl(const type_t *tp, integer_constraints a, integer_constraints b)
 	c.smax = INT64_MAX;
 	c.umin = 0;
 	c.umax = UINT64_MAX;
-	c.bset = a.bset << amount;
 	c.bclr = a.bclr << amount | (((uint64_t)1 << amount) - 1);
 	return c;
 }
@@ -254,7 +262,6 @@ ic_shr(const type_t *tp, integer_constraints a, integer_constraints b)
 	c.smax = INT64_MAX;
 	c.umin = 0;
 	c.umax = UINT64_MAX;
-	c.bset = a.bset >> amount;
 	c.bclr = a.bclr >> amount | ~(~(uint64_t)0 >> amount);
 	return c;
 }
@@ -268,7 +275,6 @@ ic_cond(integer_constraints a, integer_constraints b)
 	c.smax = a.smax > b.smax ? a.smax : b.smax;
 	c.umin = a.umin < b.umin ? a.umin : b.umin;
 	c.umax = a.umax > b.umax ? a.umax : b.umax;
-	c.bset = a.bset | b.bset;
 	c.bclr = a.bclr & b.bclr;
 	return c;
 }
@@ -288,6 +294,10 @@ ic_expr(const tnode_t *tn)
 			return ic_any(tn->tn_type);
 		lc = ic_expr(tn->u.ops.left);
 		return ic_cvt(tn->tn_type, tn->u.ops.left->tn_type, lc);
+	case DIV:
+		lc = ic_expr(before_conversion(tn->u.ops.left));
+		rc = ic_expr(before_conversion(tn->u.ops.right));
+		return ic_div(tn->tn_type, lc, rc);
 	case MOD:
 		lc = ic_expr(before_conversion(tn->u.ops.left));
 		rc = ic_expr(before_conversion(tn->u.ops.right));
@@ -321,6 +331,17 @@ uint64_t
 possible_bits(const tnode_t *tn)
 {
 	return ~ic_expr(tn).bclr;
+}
+
+bool
+attributes_contain(const attribute_list *attrs, const char *str)
+{
+	for (size_t i = 0, n = attrs->len; i < n; i++) {
+		const attribute *attr = attrs->attrs + i;
+		if (attr->prefix == NULL && strcmp(attr->name, str) == 0)
+			return true;
+	}
+	return false;
 }
 
 /* Build 'pointer to tp', 'array of tp' or 'function returning tp'. */
@@ -403,14 +424,11 @@ fallback_symbol(sym_t *sym)
 	if (Tflag && fallback_symbol_strict_bool(sym))
 		return;
 
-	if (block_level > 0 && (strcmp(sym->s_name, "__FUNCTION__") == 0 ||
+	if (funcsym != NULL && (strcmp(sym->s_name, "__FUNCTION__") == 0 ||
 			   strcmp(sym->s_name, "__PRETTY_FUNCTION__") == 0)) {
 		/* __FUNCTION__/__PRETTY_FUNCTION__ is a GCC extension */
 		gnuism(316);
-		// XXX: Should probably be ARRAY instead of PTR.
-		sym->s_type = block_derive_type(gettyp(CHAR), PTR);
-		sym->s_type->t_const = true;
-		return;
+		goto return_function_name;
 	}
 
 	if (funcsym != NULL && strcmp(sym->s_name, "__func__") == 0) {
@@ -418,6 +436,7 @@ fallback_symbol(sym_t *sym)
 			/* __func__ is a C99 feature */
 			warning(317);
 		/* C11 6.4.2.2 */
+	return_function_name:
 		sym->s_type = block_derive_type(gettyp(CHAR), ARRAY);
 		sym->s_type->t_const = true;
 		sym->s_type->u.dimension = (int)strlen(funcsym->s_name) + 1;
@@ -1799,6 +1818,15 @@ build_binary(tnode_t *ln, op_t op, bool sys, tnode_t *rn)
 	case POINT:
 	case ARROW:
 		ntn = build_struct_access(op, sys, ln, rn);
+		break;
+	case NOT:
+		if (ln->tn_op == ASSIGN && ln->u.ops.right->tn_op == CON) {
+			/* constant assignment of type '%s' in operand ... */
+			warning(382, type_name(ln->tn_type),
+			    is_nonzero_val(&ln->u.ops.right->u.value)
+			    ? "true" : "false");
+		}
+		ntn = build_op(op, sys, gettyp(Tflag ? BOOL : INT), ln, NULL);
 		break;
 	case INCAFT:
 	case DECAFT:
@@ -3291,7 +3319,26 @@ promote(op_t op, bool farg, tnode_t *tn)
 }
 
 static void
-convert_integer_from_floating(op_t op, const type_t *tp, const tnode_t *tn)
+check_lossy_floating_to_integer_conversion(
+    op_t op, int arg, const type_t *tp, const tnode_t *tn)
+{
+	long double x = tn->u.value.u.floating;
+	integer_constraints ic = ic_any(tp);
+	if (is_uinteger(tp->t_tspec)
+	    ? x >= ic.umin && x <= ic.umax && x == (uint64_t)x
+	    : x >= ic.smin && x <= ic.smax && x == (int64_t)x)
+		return;
+	if (op == FARG)
+		/* lossy conversion of %Lg to '%s', arg #%d */
+		warning(380, x, type_name(tp), arg);
+	else
+		/* lossy conversion of %Lg to '%s' */
+		warning(381, x, type_name(tp));
+}
+
+static void
+convert_integer_from_floating(
+    op_t op, int arg, const type_t *tp, const tnode_t *tn)
 {
 
 	if (op == CVT)
@@ -3300,6 +3347,8 @@ convert_integer_from_floating(op_t op, const type_t *tp, const tnode_t *tn)
 	else
 		/* implicit conversion from floating point '%s' to ... */
 		query_message(1, type_name(tn->tn_type), type_name(tp));
+	if (tn->tn_op == CON)
+		check_lossy_floating_to_integer_conversion(op, arg, tp, tn);
 }
 
 static bool
@@ -3651,7 +3700,7 @@ convert(op_t op, int arg, type_t *tp, tnode_t *tn)
 		} else if (is_integer(ot))
 			convert_integer_from_integer(op, arg, nt, ot, tp, tn);
 		else if (is_floating(ot))
-			convert_integer_from_floating(op, tp, tn);
+			convert_integer_from_floating(op, arg, tp, tn);
 		else if (ot == PTR)
 			convert_integer_from_pointer(op, nt, tp, tn);
 
@@ -3733,12 +3782,15 @@ convert_constant_from_floating(op_t op, int arg, const type_t *ntp,
 		lint_assert(nt != LDOUBLE);
 		const char *ot_name = type_name(gettyp(ov->v_tspec));
 		const char *nt_name = type_name(ntp);
+		if (is_integer(nt))
+			goto after_warning;
 		if (op == FARG)
 			/* conversion of '%s' to '%s' is out of range, ... */
 			warning(295, ot_name, nt_name, arg);
 		else
 			/* conversion of '%s' to '%s' is out of range */
 			warning(119, ot_name, nt_name);
+	after_warning:
 		ov->u.floating = ov->u.floating > 0 ? max : min;
 	}
 
@@ -3804,22 +3856,23 @@ convert_constant_check_range_bitand(size_t nsz, size_t osz,
 }
 
 static void
-convert_constant_check_range_signed(op_t op, int arg)
+convert_constant_check_range_signed(op_t op, int arg,
+				    const type_t *ntp, int64_t ov)
 {
 	if (op == ASSIGN)
-		/* assignment of negative constant to unsigned type */
-		warning(164);
+		/* assignment of negative constant %lld to unsigned ... */
+		warning(164, (long long)ov, type_name(ntp));
 	else if (op == INIT)
-		/* initialization of unsigned with negative constant */
-		warning(221);
+		/* initialization of unsigned type '%s' with negative ... */
+		warning(221, type_name(ntp), (long long)ov);
 	else if (op == FARG)
-		/* conversion of negative constant to unsigned type, ... */
-		warning(296, arg);
+		/* conversion of negative constant %lld to unsigned ... */
+		warning(296, (long long)ov, type_name(ntp), arg);
 	else if (modtab[op].m_comparison) {
 		/* handled by check_integer_comparison() */
 	} else
-		/* conversion of negative constant to unsigned type */
-		warning(222);
+		/* conversion of negative constant %lld to unsigned ... */
+		warning(222, (long long)ov, type_name(ntp));
 }
 
 /*
@@ -3902,7 +3955,8 @@ convert_constant_check_range(tspec_t ot, const type_t *tp, tspec_t nt,
 	} else if (nt != PTR && is_uinteger(nt) &&
 	    ot != PTR && !is_uinteger(ot) &&
 	    v->u.integer < 0)
-		convert_constant_check_range_signed(op, arg);
+		convert_constant_check_range_signed(op, arg,
+		    tp, v->u.integer);
 	else if (nv->u.integer != v->u.integer && nbitsz <= obitsz &&
 	    (v->u.integer & xmask) != 0 &&
 	    (is_uinteger(ot) || (v->u.integer & xmsk1) != xmsk1))
@@ -4625,7 +4679,7 @@ check_expr_misc(const tnode_t *tn, bool vctx, bool cond,
 		    discard, szof);
 		for (size_t i = 0, n = call->args_len; i < n; i++)
 			check_expr_misc(call->args[i],
-			    false, false, false, false, false, szof);
+			    true, false, false, false, false, szof);
 		return;
 	}
 

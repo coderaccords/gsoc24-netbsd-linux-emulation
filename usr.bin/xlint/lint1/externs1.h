@@ -1,4 +1,4 @@
-/*	$NetBSD: externs1.h,v 1.229 2024/05/12 18:00:58 rillig Exp $	*/
+/*	$NetBSD: externs1.h,v 1.232 2024/09/24 19:58:06 rillig Exp $	*/
 
 /*
  * Copyright (c) 1994, 1995 Jochen Pohl
@@ -131,6 +131,7 @@ void expr_restore_memory(memory_pool);
  */
 
 #ifdef DEBUG
+extern bool debug_enabled;
 const char *decl_level_kind_name(decl_level_kind);
 const char *scl_name(scl_t);
 const char *symbol_kind_name(symbol_kind);
@@ -247,11 +248,11 @@ type_t *complete_struct_or_union(sym_t *);
 type_t *complete_enum(sym_t *);
 sym_t *enumeration_constant(sym_t *, int, bool);
 void declare(sym_t *, bool, sbuf_t *);
-void copy_usage_info(sym_t *, sym_t *);
+void copy_usage_info(sym_t *, const sym_t *);
 bool check_redeclaration(sym_t *, bool *);
 bool pointer_types_are_compatible(const type_t *, const type_t *, bool);
 bool types_compatible(const type_t *, const type_t *, bool, bool, bool *);
-void complete_type(sym_t *, sym_t *);
+void complete_type(sym_t *, const sym_t *);
 sym_t *declare_parameter(sym_t *, bool);
 void check_func_lint_directives(void);
 void check_func_old_style_parameters(void);
@@ -306,6 +307,7 @@ buffer *cat_strings(buffer *, buffer *);
 unsigned int type_size_in_bits(const type_t *);
 sym_t *find_member(const struct_or_union *, const char *);
 uint64_t possible_bits(const tnode_t *);
+bool attributes_contain(const attribute_list *, const char *);
 
 void begin_statement_expr(void);
 void do_statement_expr(tnode_t *);

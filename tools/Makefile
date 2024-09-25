@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.220 2024/05/23 02:50:47 gutteridge Exp $
+#	$NetBSD: Makefile,v 1.226 2024/09/15 03:56:58 tsutsui Exp $
 
 .include <bsd.own.mk>
 .include <bsd.endian.mk>
@@ -29,7 +29,7 @@ TOOLCHAIN_BITS+= gmake .WAIT
 TOOLCHAIN_BITS+= gmp .WAIT
 TOOLCHAIN_BITS+= mpfr .WAIT
 TOOLCHAIN_BITS+= mpc .WAIT
-.  if (defined(HAVE_GCC) && ${HAVE_GCC} >= 12)
+.  if (defined(HAVE_GCC) && ${HAVE_GCC} >= 12 && !defined(NOGCCISL))
 TOOLCHAIN_BITS+= isl .WAIT
 .  endif
 . endif
@@ -172,6 +172,8 @@ SUBDIR+=	ibmnws-ncdcs
 
 .if ${MACHINE} == "macppc"
 SUBDIR+=	macppc-fixcoff
+SUBDIR+=	macppc_installboot
+SUBDIR+=	macppc_mkboothfs
 .endif
 
 .if (${MACHINE} == "prep" || ${MACHINE} == "rs6000" || ${MACHINE} == "bebox")
@@ -228,6 +230,10 @@ SUBDIR+=	dtc
 
 .if ${MACHINE} == "mvme68k"
 SUBDIR+=	mvme68k-wrtvid
+.endif
+
+.if ${MACHINE} == "mac68k" || ${MACHINE} == "macppc"
+SUBDIR+=	mkhybrid
 .endif
 
 .if ${MKX11} != "no"

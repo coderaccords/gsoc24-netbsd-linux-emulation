@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.290 2024/05/20 18:14:38 pgoyette Exp $
+#	$NetBSD: Makefile,v 1.292 2024/08/26 13:38:28 riastradh Exp $
 
 .include <bsd.own.mk>
 
@@ -114,7 +114,9 @@ SUBDIR+=	if_vlan
 SUBDIR+=	if_wg
 SUBDIR+=	iic
 SUBDIR+=	ip_ecn
+.if ${MKIPFILTER:Uno} != no
 SUBDIR+=	ipl
+.endif
 SUBDIR+=	kernfs
 SUBDIR+=	layerfs
 SUBDIR+=	lfs
@@ -296,6 +298,7 @@ SUBDIR+=	acpilid
 SUBDIR+=	acpipmtr
 SUBDIR+=	acpitz
 SUBDIR+=	acpivga
+SUBDIR+=	acpivmgenid
 SUBDIR+=	acpiwdrt
 SUBDIR+=	acpiwmi
 SUBDIR+=	aibs

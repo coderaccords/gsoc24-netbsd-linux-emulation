@@ -1,4 +1,4 @@
-/*	$NetBSD: linux_misc.c,v 1.263 2024/02/10 18:43:52 andvar Exp $	*/
+/*	$NetBSD: linux_misc.c,v 1.264 2024/06/29 13:46:10 christos Exp $	*/
 
 /*-
  * Copyright (c) 1995, 1998, 1999, 2008 The NetBSD Foundation, Inc.
@@ -57,7 +57,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_misc.c,v 1.263 2024/02/10 18:43:52 andvar Exp $");
+__KERNEL_RCSID(0, "$NetBSD: linux_misc.c,v 1.264 2024/06/29 13:46:10 christos Exp $");
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -2143,32 +2143,33 @@ linux_sys_readahead(struct lwp *l, const struct linux_sys_readahead_args *uap,
 }
 
 int
-linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args *uap, register_t *retval)
+linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args *uap,
+    register_t *retval)
 {
 	/* {
 		syscallarg(unsigned int *) cpu;
 		syscallarg(unsigned int *) node;
 		syscallarg(struct linux_getcpu_cache *) tcache;
 	}*/
-	u_int cpu_id, node_id;
-	int error = 0;
+	int error;
 
-	cpu_id = l->l_cpu->ci_data.cpu_index;
-	node_id = l->l_cpu->ci_data.cpu_numa_id;
-	
-	if(SCARG(uap, cpu))
-	{
+	if (SCARG(uap, cpu)) {
+		u_int cpu_id = l->l_cpu->ci_data.cpu_index;
 		error = copyout(&cpu_id, SCARG(uap, cpu), sizeof(cpu_id));
+		if (error)
+			return error;
 
 	}
 	
 	// TO-DO: Test on a NUMA machine if the node_id returned is correct
-	if(SCARG(uap, node))
-	{
+	if (SCARG(uap, node)) {
+		u_int node_id = l->l_cpu->ci_data.cpu_numa_id;
 		error = copyout(&node_id, SCARG(uap, node), sizeof(node_id));
+		if (error)
+			return error;
 	}
 
-	return error;
+	return 0;
 }
 
 int
@@ -2232,10 +2233,5 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
     SCARG(&clone_args, tls) = (void *)cl_args.tls;
     SCARG(&clone_args, child_tidptr) = (void *)cl_args.child_tid;
 
-	/* Call linux_sys_clone with filtered arguments */
-	printf("Calling clone\n");
 	return linux_sys_clone(l, &clone_args, retval);
-    // For now, just return ENOSYS to avoid freezing
-    printf("Exiting linux_sys_clone3\n");
-    return ENOSYS;
 }

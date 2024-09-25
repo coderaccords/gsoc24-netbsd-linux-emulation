@@ -1,4 +1,4 @@
-	$NetBSD: syscalls.master,v 1.11 2023/08/19 17:49:49 christos Exp $
+	$NetBSD: syscalls.master,v 1.13 2024/07/01 01:35:52 christos Exp $
 
 ;	@(#)syscalls.master	8.1 (Berkeley) 7/19/93
 
@@ -58,10 +58,12 @@
 #include <compat/linux/common/linux_misc.h>
 #include <compat/linux/common/linux_mmap.h>
 #include <compat/linux/common/linux_msg.h>
+#include <compat/linux/common/linux_sched.h>
 #include <compat/linux/common/linux_sem.h>
 #include <compat/linux/common/linux_shm.h>
 #include <compat/linux/common/linux_siginfo.h>
 #include <compat/linux/common/linux_signal.h>
+#include <compat/linux/common/linux_mqueue.h>
 
 #include <compat/linux/linux_syscallargs.h>
 
@@ -201,8 +203,7 @@
 81	NOARGS		{ int|sys||sync(void); }
 82	NOARGS		{ int|sys||fsync(int fd); }
 83	STD		{ int|linux_sys||fdatasync(int fd); }
-84	STD			{ int|linux_sys||sync_file_range(int fd, \
-				off_t offset, off_t nbytes, unsigned int flags); }
+84	UNIMPL		sync_file_range
 85	STD		{ int|linux_sys||timerfd_create(clockid_t clock_id, \
 			    int flags); }
 86	STD		{ int|linux_sys||timerfd_settime(int fd, int flags, \
@@ -346,8 +347,9 @@
 			    struct rusage50 *rusage); }
 166	NOARGS		{ int|sys||umask(int newmask); }
 167	UNIMPL		prctl
-168	STD		{ int|linux_sys||getcpu(unsigned int *cpu, unsigned int *node, \
-				struct linux_getcpu_cache *tcache); }
+168	STD		{ int|linux_sys||getcpu(unsigned int *cpu, \
+			    unsigned int *node, \
+			    struct linux_getcpu_cache *tcache); }
 169	STD		{ int|linux_sys||gettimeofday(struct timeval50 *tp, \
 			    struct timezone *tzp); }
 170	STD		{ int|linux_sys||settimeofday(struct timeval50 *tp, \
@@ -361,12 +363,23 @@
 177	NOARGS		{ gid_t|sys||getegid(void); }
 178	STD		{ pid_t|linux_sys||gettid(void); }
 179	STD		{ int|linux_sys||sysinfo(struct linux_sysinfo *arg); }
-180	UNIMPL		mq_open
-181	UNIMPL		mq_unlink
-182	UNIMPL		mq_timedsend
-183	UNIMPL		mq_timedreceive
-184	UNIMPL		mq_notify
-185	UNIMPL		mq_getsetattr
+180	STD		{ linux_mqd_t|linux_sys||mq_open(const char *name, \
+			    int oflag, linux_umode_t mode, \
+			    struct linux_mq_attr *attr); }
+181	STD		{ int|linux_sys||mq_unlink(const char *name); }
+182	STD		{ int|linux_sys||mq_timedsend(linux_mqd_t mqdes, \
+			    const char *msg_ptr, size_t msg_len, \
+			    unsigned int msg_prio, \
+			    const struct linux_timespec *abs_timeout); }
+183	STD		{ ssize_t|linux_sys||mq_timedreceive(linux_mqd_t mqdes, \
+			    char *msg_ptr, size_t msg_len, \
+			    unsigned int *msg_prio, \
+			    const struct linux_timespec *abs_timeout); }
+184	STD		{ int|linux_sys||mq_notify(linux_mqd_t mqdes, \
+			    const struct linux_sigevent *sevp); }
+185	STD		{ int|linux_sys||mq_getsetattr(linux_mqd_t mqdes, \
+			    const struct linux_mq_attr *newattr, \
+			    struct linux_mq_attr *oldattr); }
 #ifdef SYSVMSG
 186	NOARGS		{ int|sys||msgget(key_t key, int msgflg); }
 187	NOARGS		{ int|linux_sys||msgctl(int msqid, int cmd, \
@@ -506,7 +519,7 @@
 264	UNIMPL		name_to_handle_at
 265	UNIMPL		open_by_handle_at
 266	UNIMPL		clock_adjtime
-267	STD		{ int|linux_sys||syncfs(int fd); }
+267	UNIMPL		syncfs
 268	UNIMPL		setns
 269	STD		{ int|linux_sys||sendmmsg(int s, \
 			    struct linux_mmsghdr *msgvec, unsigned int vlen, \

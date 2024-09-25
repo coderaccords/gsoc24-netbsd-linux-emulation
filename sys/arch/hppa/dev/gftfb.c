@@ -1,4 +1,4 @@
-/*	$NetBSD: gftfb.c,v 1.14 2024/04/18 04:52:43 macallan Exp $	*/
+/*	$NetBSD: gftfb.c,v 1.20 2024/09/10 08:49:33 macallan Exp $	*/
 
 /*	$OpenBSD: sti_pci.c,v 1.7 2009/02/06 22:51:04 miod Exp $	*/
 
@@ -47,15 +47,12 @@
 #include <dev/ic/stireg.h>
 #include <dev/ic/stivar.h>
 
-#ifdef STIDEBUG
-#define	DPRINTF(s)	do {	\
-	if (stidebug)		\
-		printf s;	\
-} while(0)
+#include "opt_gftfb.h"
 
-extern int stidebug;
+#ifdef GFTFB_DEBUG
+#define	DPRINTF(s) printf(s)
 #else
-#define	DPRINTF(s)	/* */
+#define	DPRINTF(s) /* */
 #endif
 
 int	gftfb_match(device_t, cfdata_t, void *);
@@ -88,7 +85,6 @@ struct	gftfb_softc {
 #define HW_FB	0
 #define HW_FILL	1
 #define HW_BLIT	2
-	uint32_t sc_rect_colour, sc_rect_height;
 	/* cursor stuff */
 	int sc_cursor_x, sc_cursor_y;
 	int sc_hot_x, sc_hot_y, sc_enabled;
@@ -162,31 +158,6 @@ struct wsdisplay_accessops gftfb_accessops = {
 	NULL	/* scroll */
 };
 
-#define BA(F,C,S,A,J,B,I)						\
-	(((F)<<31)|((C)<<27)|((S)<<24)|((A)<<21)|((J)<<16)|((B)<<12)|(I))
-
-#define IBOvals(R,M,X,S,D,L,B,F)					\
-	(((R)<<8)|((M)<<16)|((X)<<24)|((S)<<29)|((D)<<28)|((L)<<31)|((B)<<1)|(F))
-
-#define	    IndexedDcd	0	/* Pixel data is indexed (pseudo) color */
-#define	    Otc04	2	/* Pixels in each longword transfer (4) */
-#define	    Otc32	5	/* Pixels in each longword transfer (32) */
-#define	    Ots08	3	/* Each pixel is size (8)d transfer (1) */
-#define	    OtsIndirect	6	/* Each bit goes through FG/BG color(8) */
-#define	    AddrLong	5	/* FB address is Long aligned (pixel) */
-#define	    BINovly	0x2	/* 8 bit overlay */
-#define	    BINapp0I	0x0	/* Application Buffer 0, Indexed */
-#define	    BINapp1I	0x1	/* Application Buffer 1, Indexed */
-#define	    BINapp0F8	0xa	/* Application Buffer 0, Fractional 8-8-8 */
-#define	    BINattr	0xd	/* Attribute Bitmap */
-#define	    RopSrc 	0x3
-#define	    RopInv 	0xc
-#define	    BitmapExtent08  3	/* Each write hits ( 8) bits in depth */
-#define	    BitmapExtent32  5	/* Each write hits (32) bits in depth */
-#define	    DataDynamic	    0	/* Data register reloaded by direct access */
-#define	    MaskDynamic	    1	/* Mask register reloaded by direct access */
-#define	    MaskOtc	    0	/* Mask contains Object Count valid bits */
-
 static inline void gftfb_wait_fifo(struct gftfb_softc *, uint32_t);
 
 int
@@ -251,8 +222,6 @@ gftfb_attach(device_t parent, device_t self, void *aux)
 
 	sc->sc_width = sc->sc_scr.scr_cfg.scr_width;
 	sc->sc_height = sc->sc_scr.scr_cfg.scr_height;
-	sc->sc_rect_colour = 0xf0000000;
-	sc->sc_rect_height = 0;
 
 	aprint_normal_dev(sc->sc_dev, "%s at %dx%d\n", sc->sc_scr.name, 
 	    sc->sc_width, sc->sc_height);
@@ -425,7 +394,7 @@ gftfb_check_rom(struct gftfb_softc *spc, struct pci_attach_args *pa)
 		    offs + 0x0c);
 		subsize <<= 9;
 
-#ifdef STIDEBUG
+#ifdef GFTFB_DEBUG
 		gftfb_disable_rom_internal(spc);
 		DPRINTF(("ROM offset %08x size %08x type %08x",
 		    (u_int)offs, (u_int)subsize, tmp));
@@ -473,7 +442,7 @@ gftfb_check_rom(struct gftfb_softc *spc, struct pci_attach_args *pa)
 			break;
 #endif
 		default:
-#ifdef STIDEBUG
+#ifdef GFTFB_DEBUG
 			DPRINTF((" (wrong architecture)"));
 #endif
 			break;
@@ -682,8 +651,6 @@ gftfb_setup(struct gftfb_softc *sc)
 	sc->sc_enabled = 0;
 	sc->sc_video_on = 1;
 
-	sc->sc_rect_colour = 0xf0000000;
-	sc->sc_rect_height = 0;
 
 	/* set Bt458 read mask register to all planes */
 	gftfb_wait(sc);
@@ -779,6 +746,10 @@ gftfb_ioctl(void *v, void *vs, u_long cmd, void *data, int flag,
 	switch (cmd) {
 	case WSDISPLAYIO_GTYPE:
 		*(u_int *)data = WSDISPLAY_TYPE_STI;
+		return 0;
+
+	case GCID:
+		*(u_int *)data = STI_DD_EG;
 		return 0;
 
 	/* PCI config read/write passthrough. */
@@ -878,8 +849,9 @@ gftfb_ioctl(void *v, void *vs, u_long cmd, void *data, int flag,
 		gftfb_set_video(sc, *(int *)data);
 		return 0;
 	case WSDISPLAYIO_GVIDEO:
-		return sc->sc_video_on ? 
+		*(u_int *)data = sc->sc_video_on ?
 		    WSDISPLAYIO_VIDEO_ON : WSDISPLAYIO_VIDEO_OFF;
+		return 0;
 	}
 	return EPASSTHROUGH;
 }
@@ -892,11 +864,10 @@ gftfb_mmap(void *v, void *vs, off_t offset, int prot)
 	struct sti_rom *rom = sc->sc_base.sc_rom;
 	paddr_t pa = -1;
 
-
 	if (sc->sc_mode == WSDISPLAYIO_MODE_EMUL)
 		return -1;
 
-	if (offset >= 0 || offset < sc->sc_scr.fblen) {
+	if (offset >= 0 && offset < sc->sc_scr.fblen) {
 		/* framebuffer */
 		pa = bus_space_mmap(rom->memt, sc->sc_scr.fbaddr, offset,
 		    prot, BUS_SPACE_MAP_LINEAR);
@@ -1061,59 +1032,38 @@ gftfb_wait_fifo(struct gftfb_softc *sc, uint32_t slots)
 }
 
 static void
-gftfb_real_rectfill(struct gftfb_softc *sc, int x, int y, int wi, int he,
+gftfb_rectfill(struct gftfb_softc *sc, int x, int y, int wi, int he,
 		      uint32_t bg)
 {
 	struct sti_rom *rom = sc->sc_base.sc_rom;
 	bus_space_tag_t memt = rom->memt;
 	bus_space_handle_t memh = rom->regh[2];
+	uint32_t mask = 0xffffffff;
 
 	if (sc->sc_hwmode != HW_FILL) {
-		gftfb_wait_fifo(sc, 4);
-		/* transfer data */
-		bus_space_write_stream_4(memt, memh, NGLE_REG_8, 0xffffffff);
+		gftfb_wait_fifo(sc, 3);
 		/* plane mask */
 		bus_space_write_stream_4(memt, memh, NGLE_REG_13, 0xff);
 		/* bitmap op */
 		bus_space_write_stream_4(memt, memh, NGLE_REG_14, 
-		    IBOvals(RopSrc, 0, BitmapExtent08, 0, DataDynamic, MaskOtc, 0, 0));
+		    IBOvals(RopSrc, 0, BitmapExtent08, 0, DataDynamic, MaskOtc, 1, 0));
 		/* dst bitmap access */
 		bus_space_write_stream_4(memt, memh, NGLE_REG_11,
 		    BA(IndexedDcd, Otc32, OtsIndirect, AddrLong, 0, BINapp0I, 0));
 		sc->sc_hwmode = HW_FILL;
 	}
-	gftfb_wait_fifo(sc, 3);
+	gftfb_wait_fifo(sc, 4);
+
+	if (wi < 32)
+		mask = 0xffffffff << (32 - wi);
+	/* transfer data */
+	bus_space_write_stream_4(memt, memh, NGLE_REG_8, mask);
 	bus_space_write_stream_4(memt, memh, NGLE_REG_35, bg);
 	/* dst XY */
 	bus_space_write_stream_4(memt, memh, NGLE_REG_6, (x << 16) | y);
 	/* len XY start */
 	bus_space_write_stream_4(memt, memh, NGLE_REG_9, (wi << 16) | he);
 
-}
-
-static void
-gftfb_rectfill(struct gftfb_softc *sc, int x, int y, int wi, int he,
-		      uint32_t bg)
-{
-	/*
-	 * For some reason my 4MB VisEG always draws rectangles at least 32
-	 * pixels wide - no idea why, the bitblt command doesn't have this
-	 * problem.
-	 * So, as a workaround, we draw a 50xFontHeight rectangle to the right
-	 * of the visible fb, keep track of the colour so we don't need to
-	 * redraw every time, and bitblt the portion we need
-	 */
-	if (wi < 50) {
-		if ((bg != sc->sc_rect_colour) ||
-		    (he > sc->sc_rect_height)) {
-			gftfb_real_rectfill(sc, sc->sc_width + 10, 0, 50, 
-			    he, bg);
-			sc->sc_rect_colour = bg;
-			sc->sc_rect_height = he;
-		}
-		gftfb_bitblt(sc, sc->sc_width + 10, 0, x, y, wi, he, RopSrc);
-	} else
-		gftfb_real_rectfill(sc, x, y, wi, he, bg);
 }
 
 static void

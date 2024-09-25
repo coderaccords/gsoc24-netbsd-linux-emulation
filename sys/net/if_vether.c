@@ -1,4 +1,4 @@
-/*	$NetBSD: if_vether.c,v 1.1 2020/09/27 13:31:04 roy Exp $	*/
+/*	$NetBSD: if_vether.c,v 1.3 2024/09/24 15:23:53 roy Exp $	*/
 /* $OpenBSD: if_vether.c,v 1.27 2016/04/13 11:41:15 mpi Exp $ */
 
 /*
@@ -19,7 +19,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: if_vether.c,v 1.1 2020/09/27 13:31:04 roy Exp $");
+__KERNEL_RCSID(0, "$NetBSD: if_vether.c,v 1.3 2024/09/24 15:23:53 roy Exp $");
 
 #include <sys/cprng.h>
 #include <sys/kmem.h>
@@ -64,7 +64,7 @@ vether_clone_create(struct if_clone *ifc, int unit)
 	ifp = &sc->sc_ec.ec_if;
 	if_initname(ifp, ifc->ifc_name, unit);
 	ifp->if_softc = sc;
-	ifp->if_flags = IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST;
+	ifp->if_flags = IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST | IFF_LINK0;
 #ifdef NET_MPSAFE
 	ifp->if_extflags = IFEF_MPSAFE;
 #endif
@@ -89,6 +89,8 @@ vether_clone_create(struct if_clone *ifc, int unit)
 	ether_ifattach(ifp, enaddr);
 	if_register(ifp);
 
+	if_link_state_change(ifp, LINK_STATE_UP);
+
 	return 0;
 }
 
@@ -108,7 +110,6 @@ vether_init(struct ifnet *ifp)
 {
 
 	ifp->if_flags |= IFF_RUNNING;
-	if_link_state_change(ifp, LINK_STATE_UP);
 	vether_start(ifp);
 	return 0;
 }
@@ -137,7 +138,6 @@ vether_stop(struct ifnet *ifp, __unused int disable)
 {
 
 	ifp->if_flags &= ~IFF_RUNNING;
-	if_link_state_change(ifp, LINK_STATE_DOWN);
 }
 
 static int
@@ -148,6 +148,13 @@ vether_ioctl(struct ifnet *ifp, unsigned long cmd, void *data)
 	switch (cmd) {
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
+		break;
+
+        case SIOCSIFFLAGS:
+                if ((error = ifioctl_common(ifp, cmd, data)) != 0)
+			break;
+		if_link_state_change(ifp, ifp->if_flags & IFF_LINK0 ?
+		    LINK_STATE_UP : LINK_STATE_DOWN);
 		break;
 
 	default:
