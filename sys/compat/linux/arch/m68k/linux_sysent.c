@@ -1,4 +1,4 @@
-/* $NetBSD: linux_sysent.c,v 1.119 2024/07/01 01:36:19 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call switch table.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_sysent.c,v 1.119 2024/07/01 01:36:19 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #include "opt_compat_netbsd.h"
@@ -1531,8 +1531,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 350 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 351 = filler */
+		ns(struct linux_sys_renameat2_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_renameat2
+	},		/* 351 = renameat2 */
 	{
 		ns(struct sys_getrandom_args),
 		.sy_flags = SYCALL_ARG_PTR,
@@ -1614,8 +1616,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 375 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 376 = filler */
+		ns(struct linux_sys_copy_file_range_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_copy_file_range
+	},		/* 376 = copy_file_range */
 	{
 		.sy_call = linux_sys_nosys,
 	},		/* 377 = filler */
@@ -1793,8 +1797,10 @@ struct sysent linux_sysent[] = {
 		.sy_call = linux_sys_nosys,
 	},		/* 434 = filler */
 	{
-		.sy_call = linux_sys_nosys,
-	},		/* 435 = filler */
+		ns(struct linux_sys_clone3_args),
+		.sy_flags = SYCALL_ARG_PTR,
+		.sy_call = (sy_call_t *)linux_sys_clone3
+	},		/* 435 = clone3 */
 	{
 		ns(struct linux_sys_close_range_args),
 		.sy_call = (sy_call_t *)linux_sys_close_range

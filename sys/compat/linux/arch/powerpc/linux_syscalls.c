@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscalls.c,v 1.97 2024/07/01 01:36:19 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call names.
@@ -8,7 +8,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: linux_syscalls.c,v 1.97 2024/07/01 01:36:19 christos Exp $");
+__KERNEL_RCSID(0, "$NetBSD$");
 
 #if defined(_KERNEL_OPT)
 #include <sys/param.h>
@@ -392,7 +392,7 @@ const char *const linux_syscallnames[] = {
 	/* 354 */	"#354 (unimplemented kcmp)",
 	/* 355 */	"#355 (unimplemented sched_setattr)",
 	/* 356 */	"#356 (unimplemented sched_getattr)",
-	/* 357 */	"#357 (unimplemented renameat2)",
+	/* 357 */	"renameat2",
 	/* 358 */	"#358 (unimplemented seccomp)",
 	/* 359 */	"getrandom",
 	/* 360 */	"#360 (unimplemented memfd_create)",
@@ -414,7 +414,7 @@ const char *const linux_syscallnames[] = {
 	/* 376 */	"#376 (unimplemented)",
 	/* 377 */	"#377 (unimplemented)",
 	/* 378 */	"#378 (unimplemented mlock2)",
-	/* 379 */	"#379 (unimplemented copy_file_range)",
+	/* 379 */	"copy_file_range",
 	/* 380 */	"#380 (unimplemented preadv2)",
 	/* 381 */	"#381 (unimplemented pwritev2)",
 	/* 382 */	"#382 (unimplemented kexec_file_load)",
@@ -470,7 +470,7 @@ const char *const linux_syscallnames[] = {
 	/* 432 */	"#432 (unimplemented)",
 	/* 433 */	"#433 (unimplemented)",
 	/* 434 */	"#434 (unimplemented)",
-	/* 435 */	"#435 (unimplemented)",
+	/* 435 */	"clone3",
 	/* 436 */	"close_range",
 	/* 437 */	"#437 (unimplemented)",
 	/* 438 */	"#438 (unimplemented)",
@@ -914,7 +914,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 354 */	NULL, /* unimplemented kcmp */
 	/* 355 */	NULL, /* unimplemented sched_setattr */
 	/* 356 */	NULL, /* unimplemented sched_getattr */
-	/* 357 */	NULL, /* unimplemented renameat2 */
+	/* 357 */	NULL, /* renameat2 */
 	/* 358 */	NULL, /* unimplemented seccomp */
 	/* 359 */	NULL, /* getrandom */
 	/* 360 */	NULL, /* unimplemented memfd_create */
@@ -936,7 +936,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 376 */	NULL, /* unimplemented */
 	/* 377 */	NULL, /* unimplemented */
 	/* 378 */	NULL, /* unimplemented mlock2 */
-	/* 379 */	NULL, /* unimplemented copy_file_range */
+	/* 379 */	NULL, /* copy_file_range */
 	/* 380 */	NULL, /* unimplemented preadv2 */
 	/* 381 */	NULL, /* unimplemented pwritev2 */
 	/* 382 */	NULL, /* unimplemented kexec_file_load */
@@ -992,7 +992,7 @@ const char *const altlinux_syscallnames[] = {
 	/* 432 */	NULL, /* unimplemented */
 	/* 433 */	NULL, /* unimplemented */
 	/* 434 */	NULL, /* unimplemented */
-	/* 435 */	NULL, /* unimplemented */
+	/* 435 */	NULL, /* clone3 */
 	/* 436 */	NULL, /* close_range */
 	/* 437 */	NULL, /* unimplemented */
 	/* 438 */	NULL, /* unimplemented */

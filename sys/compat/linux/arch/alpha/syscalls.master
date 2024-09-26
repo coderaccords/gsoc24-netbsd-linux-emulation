@@ -838,7 +838,8 @@
 507	UNIMPL		finit_module
 508	UNIMPL		sched_setattr
 509	UNIMPL		sched_getattr
-510	UNIMPL		renameat2
+510	STD		{ int|linux_sys||renameat2(int fromfd, const char *from, \
+			    int tofd, const char *to, unsigned int flags); }
 511	UNIMPL
 512	UNIMPL
 513	UNIMPL
@@ -847,7 +848,9 @@
 516	UNIMPL
 517	UNIMPL
 518	UNIMPL
-519	UNIMPL
+519	STD		{ ssize_t|linux_sys||copy_file_range(int fd_in, \
+			off_t * off_in, int fd_out, off_t * off_out, \
+			size_t len, unsigned int flags); }
 520	UNIMPL
 521	UNIMPL
 522	STD		{ int|linux_sys||statx(int fd, const char *path, \
@@ -875,7 +878,8 @@
 542	UNIMPL
 543	UNIMPL
 544	UNIMPL
-545	UNIMPL
+545	STD		{ int|linux_sys||clone3(struct linux_user_clone3_args *cl_args, \
+					size_t size); }
 546	STD		{ int|linux_sys||close_range(unsigned int first, \
 			    unsigned int last, unsigned int flags); }
 547	UNIMPL

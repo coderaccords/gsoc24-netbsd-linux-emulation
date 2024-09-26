@@ -614,7 +614,8 @@
 348	UNIMPL		finit_module
 349	UNIMPL		sched_setattr
 350	UNIMPL		sched_getattr
-351	UNIMPL		renameat2
+351	STD		{ int|linux_sys||renameat2(int fromfd, const char *from, \
+			    int tofd, const char *to, unsigned int flags); }
 352	NOARGS		{ ssize_t|sys||getrandom(void *buf, size_t buflen, \
 			    unsigned int flags); }
 353	UNIMPL		memfd_create
@@ -646,7 +647,9 @@
 373	UNIMPL		userfaultfd
 374	UNIMPL		membarrier
 375	UNIMPL		mlock2
-376	UNIMPL		copy_file_range
+376	STD		{ ssize_t|linux_sys||copy_file_range(int fd_in, \
+			off_t * off_in, int fd_out, off_t * off_out, \
+			size_t len, unsigned int flags); }
 377	UNIMPL		preadv2
 378	UNIMPL		pwritev2
 379	STD		{ int|linux_sys||statx(int fd, const char *path, \
@@ -707,7 +710,8 @@
 432	UNIMPL
 433	UNIMPL
 434	UNIMPL
-435	UNIMPL
+435	STD		{ int|linux_sys||clone3(struct linux_user_clone3_args *cl_args, \
+					size_t size); }
 436	STD		{ int|linux_sys||close_range(unsigned int first, \
 			    unsigned int last, unsigned int flags); }
 437	UNIMPL

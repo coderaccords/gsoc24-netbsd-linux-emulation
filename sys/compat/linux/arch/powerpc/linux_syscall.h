@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscall.h,v 1.98 2024/07/01 01:36:19 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -765,11 +765,20 @@
 /* syscall: "sendmmsg" ret: "int" args: "int" "struct linux_mmsghdr *" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_sendmmsg	349
 
+/* syscall: "renameat2" ret: "int" args: "int" "const char *" "int" "const char *" "unsigned int" */
+#define	LINUX_SYS_renameat2	357
+
 /* syscall: "getrandom" ret: "ssize_t" args: "void *" "size_t" "unsigned int" */
 #define	LINUX_SYS_getrandom	359
 
+/* syscall: "copy_file_range" ret: "ssize_t" args: "int" "off_t *" "int" "off_t *" "size_t" "unsigned int" */
+#define	LINUX_SYS_copy_file_range	379
+
 /* syscall: "statx" ret: "int" args: "int" "const char *" "int" "unsigned int" "struct linux_statx *" */
 #define	LINUX_SYS_statx	383
+
+/* syscall: "clone3" ret: "int" args: "struct linux_user_clone3_args *" "size_t" */
+#define	LINUX_SYS_clone3	435
 
 /* syscall: "close_range" ret: "int" args: "unsigned int" "unsigned int" "unsigned int" */
 #define	LINUX_SYS_close_range	436

@@ -636,7 +636,8 @@
 379	UNIMPL		finit_module
 380	UNIMPL		sched_setattr
 381	UNIMPL		sched_getattr
-382	UNIMPL		renameat2
+382	STD		{ int|linux_sys||renameat2(int fromfd, const char *from, \
+			    int tofd, const char *to, unsigned int flags); }
 383	UNIMPL		seccomp
 ; XXX FIX-me?
 ; 384	NOARGS		{ ssize_t|sys||getrandom(void *buf, size_t buflen, \
@@ -658,7 +659,9 @@
 388	UNIMPL		usr32
 389	STD		{ int|linux_sys||set_tls(void *tls); }
 390	UNIMPL
-391	UNIMPL
+391	STD		{ ssize_t|linux_sys||copy_file_range(int fd_in, \
+			off_t * off_in, int fd_out, off_t * off_out, \
+			size_t len, unsigned int flags); }
 392	UNIMPL
 393	UNIMPL
 394	UNIMPL
@@ -704,7 +707,8 @@
 432	UNIMPL
 433	UNIMPL
 434	UNIMPL
-435	UNIMPL
+435	STD		{ int|linux_sys||clone3(struct linux_user_clone3_args *cl_args, \
+					size_t size); }
 436	STD		{ int|linux_sys||close_range(unsigned int first, \
 			    unsigned int last, unsigned int flags); }
 437	UNIMPL

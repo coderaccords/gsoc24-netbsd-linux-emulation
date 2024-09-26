@@ -1,4 +1,4 @@
-/* $NetBSD: linux_syscallargs.h,v 1.94 2024/07/01 01:36:18 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument lists.
@@ -1325,6 +1325,15 @@ struct linux_sys_sendmmsg_args {
 };
 check_syscall_args(linux_sys_sendmmsg)
 
+struct linux_sys_renameat2_args {
+	syscallarg(int) fromfd;
+	syscallarg(const char *) from;
+	syscallarg(int) tofd;
+	syscallarg(const char *) to;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_renameat2)
+
 struct linux_sys_cacheflush_args {
 	syscallarg(uintptr_t) from;
 	syscallarg(intptr_t) to;
@@ -1337,6 +1346,16 @@ struct linux_sys_set_tls_args {
 };
 check_syscall_args(linux_sys_set_tls)
 
+struct linux_sys_copy_file_range_args {
+	syscallarg(int) fd_in;
+	syscallarg(off_t *) off_in;
+	syscallarg(int) fd_out;
+	syscallarg(off_t *) off_out;
+	syscallarg(size_t) len;
+	syscallarg(unsigned int) flags;
+};
+check_syscall_args(linux_sys_copy_file_range)
+
 struct linux_sys_statx_args {
 	syscallarg(int) fd;
 	syscallarg(const char *) path;
@@ -1345,6 +1364,12 @@ struct linux_sys_statx_args {
 	syscallarg(struct linux_statx *) sp;
 };
 check_syscall_args(linux_sys_statx)
+
+struct linux_sys_clone3_args {
+	syscallarg(struct linux_user_clone3_args *) cl_args;
+	syscallarg(size_t) size;
+};
+check_syscall_args(linux_sys_clone3)
 
 struct linux_sys_close_range_args {
 	syscallarg(unsigned int) first;
@@ -1888,13 +1913,19 @@ int	linux_sys_syncfs(struct lwp *, const struct linux_sys_syncfs_args *, registe
 
 int	linux_sys_sendmmsg(struct lwp *, const struct linux_sys_sendmmsg_args *, register_t *);
 
+int	linux_sys_renameat2(struct lwp *, const struct linux_sys_renameat2_args *, register_t *);
+
 int	linux_sys_breakpoint(struct lwp *, const void *, register_t *);
 
 int	linux_sys_cacheflush(struct lwp *, const struct linux_sys_cacheflush_args *, register_t *);
 
 int	linux_sys_set_tls(struct lwp *, const struct linux_sys_set_tls_args *, register_t *);
 
+int	linux_sys_copy_file_range(struct lwp *, const struct linux_sys_copy_file_range_args *, register_t *);
+
 int	linux_sys_statx(struct lwp *, const struct linux_sys_statx_args *, register_t *);
+
+int	linux_sys_clone3(struct lwp *, const struct linux_sys_clone3_args *, register_t *);
 
 int	linux_sys_close_range(struct lwp *, const struct linux_sys_close_range_args *, register_t *);
 

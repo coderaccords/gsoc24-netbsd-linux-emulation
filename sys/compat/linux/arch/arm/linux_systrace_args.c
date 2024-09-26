@@ -1,4 +1,4 @@
-/* $NetBSD: linux_systrace_args.c,v 1.27 2024/07/01 01:36:18 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument to DTrace register array conversion.
@@ -2180,6 +2180,17 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 4;
 		break;
 	}
+	/* linux_sys_renameat2 */
+	case 382: {
+		const struct linux_sys_renameat2_args *p = params;
+		iarg[0] = SCARG(p, fromfd); /* int */
+		uarg[1] = (intptr_t) SCARG(p, from); /* const char * */
+		iarg[2] = SCARG(p, tofd); /* int */
+		uarg[3] = (intptr_t) SCARG(p, to); /* const char * */
+		uarg[4] = SCARG(p, flags); /* unsigned int */
+		*n_args = 5;
+		break;
+	}
 	/* linux_sys_breakpoint */
 	case 385: {
 		*n_args = 0;
@@ -2201,6 +2212,18 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 1;
 		break;
 	}
+	/* linux_sys_copy_file_range */
+	case 391: {
+		const struct linux_sys_copy_file_range_args *p = params;
+		iarg[0] = SCARG(p, fd_in); /* int */
+		uarg[1] = (intptr_t) SCARG(p, off_in); /* off_t * */
+		iarg[2] = SCARG(p, fd_out); /* int */
+		uarg[3] = (intptr_t) SCARG(p, off_out); /* off_t * */
+		uarg[4] = SCARG(p, len); /* size_t */
+		uarg[5] = SCARG(p, flags); /* unsigned int */
+		*n_args = 6;
+		break;
+	}
 	/* linux_sys_statx */
 	case 397: {
 		const struct linux_sys_statx_args *p = params;
@@ -2210,6 +2233,14 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		uarg[3] = SCARG(p, mask); /* unsigned int */
 		uarg[4] = (intptr_t) SCARG(p, sp); /* struct linux_statx * */
 		*n_args = 5;
+		break;
+	}
+	/* linux_sys_clone3 */
+	case 435: {
+		const struct linux_sys_clone3_args *p = params;
+		uarg[0] = (intptr_t) SCARG(p, cl_args); /* struct linux_user_clone3_args * */
+		uarg[1] = SCARG(p, size); /* size_t */
+		*n_args = 2;
 		break;
 	}
 	/* linux_sys_close_range */
@@ -5833,6 +5864,28 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_renameat2 */
+	case 382:
+		switch(ndx) {
+		case 0:
+			p = "int";
+			break;
+		case 1:
+			p = "const char *";
+			break;
+		case 2:
+			p = "int";
+			break;
+		case 3:
+			p = "const char *";
+			break;
+		case 4:
+			p = "unsigned int";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_breakpoint */
 	case 385:
 		break;
@@ -5862,6 +5915,31 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_sys_copy_file_range */
+	case 391:
+		switch(ndx) {
+		case 0:
+			p = "int";
+			break;
+		case 1:
+			p = "off_t *";
+			break;
+		case 2:
+			p = "int";
+			break;
+		case 3:
+			p = "off_t *";
+			break;
+		case 4:
+			p = "size_t";
+			break;
+		case 5:
+			p = "unsigned int";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_sys_statx */
 	case 397:
 		switch(ndx) {
@@ -5879,6 +5957,19 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		case 4:
 			p = "struct linux_statx *";
+			break;
+		default:
+			break;
+		};
+		break;
+	/* linux_sys_clone3 */
+	case 435:
+		switch(ndx) {
+		case 0:
+			p = "struct linux_user_clone3_args *";
+			break;
+		case 1:
+			p = "size_t";
 			break;
 		default:
 			break;
@@ -7205,6 +7296,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
+	/* linux_sys_renameat2 */
+	case 382:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
 	/* linux_sys_breakpoint */
 	case 385:
 	/* linux_sys_cacheflush */
@@ -7217,8 +7313,18 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
+	/* linux_sys_copy_file_range */
+	case 391:
+		if (ndx == 0 || ndx == 1)
+			p = "ssize_t";
+		break;
 	/* linux_sys_statx */
 	case 397:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_sys_clone3 */
+	case 435:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
