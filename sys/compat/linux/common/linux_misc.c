@@ -169,11 +169,11 @@ const struct linux_mnttypes linux_fstypes[] = {
 };
 const int linux_fstypes_cnt = sizeof(linux_fstypes) / sizeof(linux_fstypes[0]);
 
-# ifdef DEBUG_LINUX
-#define	DPRINTF(a)	uprintf a
-# else
-#define	DPRINTF(a)
-# endif
+#ifdef DEBUG_LINUX
+#define DPRINTF(a, ...)	uprintf(a, __VA_ARGS__)
+#else
+#define DPRINTF(a, ...)
+#endif
 
 /* Local linux_misc.c functions: */
 static void linux_to_bsd_mmap_args(struct sys_mmap_args *,
@@ -2052,8 +2052,8 @@ linux_sys_memfd_create(struct lwp *l,
 	}
 
 	if (lflags & ~LINUX_MFD_KNOWN_FLAGS) {
-		DPRINTF(("linux_sys_memfd_create: ignored flags %x\n",
-		    lflags & ~LINUX_MFD_KNOWN_FLAGS));
+		DPRINTF("%s: ignored flags %#x\n", __func__,
+		    lflags & ~LINUX_MFD_KNOWN_FLAGS);
 	}
 
 	SCARG(&muap, name) = SCARG(uap, name);
@@ -2175,63 +2175,54 @@ linux_sys_getcpu(lwp_t *l, const struct linux_sys_getcpu_args *uap,
 int
 linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, register_t *retval)
 {
-	printf("Entering linux_sys_clone3\n");
-
-    struct linux_user_clone3_args cl_args;
+	struct linux_user_clone3_args cl_args;
 	struct linux_sys_clone_args clone_args;
-    int error;
+	int error;
 
-    if (SCARG(uap, size) != sizeof(cl_args)) {
-        printf("Invalid size less or more\n");
-        return EINVAL;
-    }
+	if (SCARG(uap, size) != sizeof(cl_args)) {
+	    DPRINTF("%s: Invalid size less or more\n", __func__);
+	    return EINVAL;
+	}
 
-    error = copyin(SCARG(uap, cl_args), &cl_args, SCARG(uap, size));
-    if (error) {
-        printf("Copyin failed: %d\n", error);
-        return error;
-    }
+	error = copyin(SCARG(uap, cl_args), &cl_args, SCARG(uap, size));
+	if (error) {
+		DPRINTF("%s: Copyin failed: %d\n", __func__, error);
+		return error;
+	}
 
-    printf("Flags: 0x%lx\n", (unsigned long)cl_args.flags);
+	DPRINTF("%sFlags: %#lx\n", (unsigned long)cl_args.flags);
 
 	/* Define allowed flags */
-	int allowed_flags = LINUX_CLONE_VM | LINUX_CLONE_FS | LINUX_CLONE_FILES |
-	                LINUX_CLONE_SIGHAND | LINUX_CLONE_THREAD | LINUX_CLONE_VFORK |
-	                LINUX_CLONE_PARENT_SETTID | LINUX_CLONE_CHILD_CLEARTID |
-	                LINUX_CLONE_CHILD_SETTID | LINUX_CLONE_SETTLS;
-
-	int unimplemented_flags = LINUX_CLONE_NEWNS | LINUX_CLONE_NEWUTS | LINUX_CLONE_NEWIPC |
-	                          LINUX_CLONE_NEWUSER | LINUX_CLONE_NEWPID | LINUX_CLONE_NEWNET |
-	                          LINUX_CLONE_PIDFD;
-
-	if(cl_args.flags & unimplemented_flags)
-	{
-		printf("Unsupported flags for clone3: 0x%x\n", unimplemented_flags);
+	if (cl_args.flags & LINUX_CLONE_UNIMPLEMENTED_FLAGS) {
+		DPRINTF("%s: Unsupported flags for clone3: %#x\n", __func__,
+		    cl_args.flags & LINUX_CLONE_UNIMPLEMENTED_FLAGS);
 		return EOPNOTSUPP;
 	}
-	if(cl_args.flags & ~(allowed_flags))
-	{
-		printf("Unallowed flags for clone3: 0x%x\n", unimplemented_flags);
+	if (cl_args.flags & ~LINUX_CLONE_ALLOWED_FLAGS) {
+		DPRINTF("%s: Disallowed flags for clone3: %#x\n", __func__,
+		    cl_args.flags & ~LINUX_CLONE_ALLOWED_FLAGS);
 		return EINVAL;
 	}
 
 	if ((cl_args.flags & ~(uint64_t)LINUX_CLONE_CSIGNAL) != 0)
-		return (EINVAL);
+		return EINVAL;
 
 	if (cl_args.stack == 0 && cl_args.stack_size != 0) {
-		printf("Stack is NULL but stack size is not 0\n");
-        return EINVAL;
-    }
-    if (cl_args.stack != 0 && cl_args.stack_size == 0) {
-		printf("Stack is not NULL but stack size is 0\n");
-        return EINVAL;
-    }
+		DPRINTF("%s: Stack is NULL but stack size is not 0\n",
+		    __func__);
+		return EINVAL;
+	}
+	if (cl_args.stack != 0 && cl_args.stack_size == 0) {
+		DPRINTF("%s: Stack is not NULL but stack size is 0\n",
+		    __func__);
+		return EINVAL;
+	}
 
 	SCARG(&clone_args, flags) = (int)(cl_args.flags & allowed_flags);
-    SCARG(&clone_args, stack) = (void *)cl_args.stack;
-    SCARG(&clone_args, parent_tidptr) = (void *)cl_args.parent_tid;
-    SCARG(&clone_args, tls) = (void *)cl_args.tls;
-    SCARG(&clone_args, child_tidptr) = (void *)cl_args.child_tid;
+	SCARG(&clone_args, stack) = (void *)cl_args.stack;
+	SCARG(&clone_args, parent_tidptr) = (void *)cl_args.parent_tid;
+	SCARG(&clone_args, tls) = (void *)cl_args.tls;
+	SCARG(&clone_args, child_tidptr) = (void *)cl_args.child_tid;
 
 	return linux_sys_clone(l, &clone_args, retval);
 }
