@@ -2204,9 +2204,12 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
 		return EINVAL;
 	}
 
-	if ((cl_args.flags & ~(uint64_t)LINUX_CLONE_CSIGNAL) != 0)
+	if ((cl_args.exit_signal & ~(uint64_t)LINUX_CLONE_CSIGNAL) != 0){
+		DPRINTF("%s: Disallowed flags for clone3: %#x\n", __func__,
+		    cl_args.exit_signal & ~(uint64_t)LINUX_CLONE_CSIGNAL);
 		return EINVAL;
-
+	}
+	
 	if (cl_args.stack == 0 && cl_args.stack_size != 0) {
 		DPRINTF("%s: Stack is NULL but stack size is not 0\n",
 		    __func__);
@@ -2218,7 +2221,9 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
 		return EINVAL;
 	}
 
-	SCARG(&clone_args, flags) = (int)(cl_args.flags & allowed_flags);
+	int flags = cl_args.flags & LINUX_CLONE_ALLOWED_FLAGS;
+	int sig = cl_args.exit_signal & LINUX_CLONE_CSIGNAL;
+	SCARG(&clone_args, flags) = flags | sig;
 	SCARG(&clone_args, stack) = (void *)cl_args.stack;
 	SCARG(&clone_args, parent_tidptr) = (void *)cl_args.parent_tid;
 	SCARG(&clone_args, tls) = (void *)cl_args.tls;
