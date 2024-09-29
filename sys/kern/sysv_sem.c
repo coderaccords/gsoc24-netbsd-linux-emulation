@@ -1083,16 +1083,17 @@ done:
 }
 
 int
-do_semop(struct lwp *l, int usemid, struct sembuf *usops,
-    size_t nsops, struct timespec *timeout, register_t *retval)
+sys_semtimedop(struct lwp *l, const struct sys_semtimedop_args *uap, register_t *retval)
 {
 	/* {
 		syscallarg(int) semid;
 		syscallarg(struct sembuf *) sops;
 		syscallarg(size_t) nsops;
+		syscallarg(const struct timespec *) timeout;
 	} */
 	struct proc *p = l->l_proc;
-	int semid, seq;
+	int semid = SCARG(uap, semid), seq;
+	size_t nsops = SCARG(uap, nsops);
 	struct sembuf small_sops[SMALL_SOPS];
 	struct sembuf *sops;
 	struct semid_ds *semaptr;
@@ -1100,17 +1101,21 @@ do_semop(struct lwp *l, int usemid, struct sembuf *usops,
 	struct __sem *semptr = NULL;
 	struct sem_undo *suptr = NULL;
 	kauth_cred_t cred = l->l_cred;
-	int timo;
 	int i, error;
 	int do_wakeup, do_undos;
-	
+	struct timespec timeout;
+	int timo;
+
 	RUN_ONCE(&exithook_control, seminit_exithook);
-	SEM_PRINTF(("call to semop(%d, %p, %zd)\n", usemid, usops, nsops));
+
+	SEM_PRINTF(("call to semop(%d, %p, %zd)\n", semid, SCARG(uap,sops), nsops));
+
 	if (__predict_false((p->p_flag & PK_SYSVSEM) == 0)) {
 		mutex_enter(p->p_lock);
 		p->p_flag |= PK_SYSVSEM;
 		mutex_exit(p->p_lock);
 	}
+
 restart:
 	if (nsops <= SMALL_SOPS) {
 		sops = small_sops;
@@ -1121,46 +1126,68 @@ restart:
 		    seminfo.semopm, nsops));
 		return (E2BIG);
 	}
-	error = copyin(usops, sops, nsops * sizeof(sops[0]));
+
+	error = copyin(SCARG(uap, sops), sops, nsops * sizeof(sops[0]));
 	if (error) {
 		SEM_PRINTF(("error = %d from copyin(%p, %p, %zd)\n", error,
-		    usops, &sops, nsops * sizeof(sops[0])));
+		    SCARG(uap, sops), &sops, nsops * sizeof(sops[0])));
 		if (sops != small_sops)
 			kmem_free(sops, nsops * sizeof(*sops));
 		return error;
 	}
+
 	mutex_enter(&semlock);
 	/* In case of reallocation, we will wait for completion */
 	while (__predict_false(sem_realloc_state))
 		cv_wait(&sem_realloc_cv, &semlock);
-	semid = IPCID_TO_IX(usemid);	/* Convert back to zero origin */
+
+	semid = IPCID_TO_IX(semid);	/* Convert back to zero origin */
 	if (semid < 0 || semid >= seminfo.semmni) {
 		error = EINVAL;
 		goto out;
 	}
-	if (timeout != NULL) {
-        error = ts2timo(CLOCK_MONOTONIC, TIMER_RELTIME, timeout, &timo, NULL);
+
+	if (SCARG(uap, timeout) != NULL) {
+		error = copyin(SCARG(uap, timeout), &timeout, sizeof(timeout));
+		if (error) {
+			SEM_PRINTF(("error = %d from copyin(%p, %p, %zd)\n", error,
+			    SCARG(uap, timeout), &timeout, sizeof(timeout)));
+			return error;
+		}
+		error = ts2timo(CLOCK_MONOTONIC, TIMER_RELTIME, &timeout, &timo, NULL);
         if (error != 0)
             return error;
-    } else {
-        timo = 0;  // Wait indefinitely
-    }
+	} else {
+		timo = 0;  // Wait indefinitely
+	}
+
+	// if (timeout != NULL) {
+	// 	error = ts2timo(CLOCK_MONOTONIC, TIMER_RELTIME, timeout, &timo, NULL);
+    //     if (error != 0)
+    //         return error;
+    // } else {
+    //     timo = 0;  // Wait indefinitely
+    // }
+
 	semaptr = &sema[semid];
-	seq = IPCID_TO_SEQ(usemid);
+	seq = IPCID_TO_SEQ(SCARG(uap, semid));
 	if ((semaptr->sem_perm.mode & SEM_ALLOC) == 0 ||
 	    semaptr->sem_perm._seq != seq) {
 		error = EINVAL;
 		goto out;
 	}
+
 	if ((error = ipcperm(cred, &semaptr->sem_perm, IPC_W))) {
 		SEM_PRINTF(("error = %d from ipaccess\n", error));
 		goto out;
 	}
+
 	for (i = 0; i < nsops; i++)
 		if (sops[i].sem_num >= semaptr->sem_nsems) {
 			error = EFBIG;
 			goto out;
 		}
+
 	/*
 	 * Loop trying to satisfy the vector of requests.
 	 * If we reach a point where we must wait, any requests already
@@ -1171,17 +1198,21 @@ restart:
 	 * of requests is atomic (never partially satisfied).
 	 */
 	do_undos = 0;
+
 	for (;;) {
 		do_wakeup = 0;
+
 		for (i = 0; i < nsops; i++) {
 			sopptr = &sops[i];
 			semptr = &semaptr->_sem_base[sopptr->sem_num];
+
 			SEM_PRINTF(("semop:  semaptr=%p, sem_base=%p, "
 			    "semptr=%p, sem[%d]=%d : op=%d, flag=%s\n",
 			    semaptr, semaptr->_sem_base, semptr,
 			    sopptr->sem_num, semptr->semval, sopptr->sem_op,
 			    (sopptr->sem_flg & IPC_NOWAIT) ?
 			    "nowait" : "wait"));
+
 			if (sopptr->sem_op < 0) {
 				if ((int)(semptr->semval +
 				    sopptr->sem_op) < 0) {
@@ -1209,11 +1240,13 @@ restart:
 					do_undos = 1;
 			}
 		}
+
 		/*
 		 * Did we get through the entire vector?
 		 */
 		if (i >= nsops)
 			goto done;
+
 		/*
 		 * No ... rollback anything that we've already done
 		 */
@@ -1221,6 +1254,7 @@ restart:
 		while (i-- > 0)
 			semaptr->_sem_base[sops[i].sem_num].semval -=
 			    sops[i].sem_op;
+
 		/*
 		 * If the request that we couldn't satisfy has the
 		 * NOWAIT flag set then return with EAGAIN.
@@ -1229,17 +1263,21 @@ restart:
 			error = EAGAIN;
 			goto out;
 		}
+
 		if (sopptr->sem_op == 0)
 			semptr->semzcnt++;
 		else
 			semptr->semncnt++;
+
 		sem_waiters++;
 		SEM_PRINTF(("semop:  good night!\n"));
-		error = cv_timedwait_sig(&semcv[semid], &semlock, timo);
+		error = cv_timedwait_sig(&semcv[semid], &semlock, timo)
 		SEM_PRINTF(("semop:  good morning (error=%d)!\n", error));
 		sem_waiters--;
+
 		/* Notify reallocator, if it is waiting */
 		cv_broadcast(&sem_realloc_cv);
+
 		/*
 		 * Make sure that the semaphore still exists
 		 */
@@ -1248,6 +1286,7 @@ restart:
 			error = EIDRM;
 			goto out;
 		}
+
 		/*
 		 * The semaphore is still alive.  Readjust the count of
 		 * waiting processes.
@@ -1257,21 +1296,27 @@ restart:
 			semptr->semzcnt--;
 		else
 			semptr->semncnt--;
+
 		/* In case of such state, restart the call */
 		if (sem_realloc_state) {
 			mutex_exit(&semlock);
 			goto restart;
 		}
+
 		/* Is it really morning, or was our sleep interrupted? */
 		if (error != 0) {
+			/* Simplify to just EINTR */
 			if (error == EINTR || error == ERESTART)
-				error = EINTR;  // Simplify to just EINTR
+				error = EINTR;
+
+			/* Convert timeout to EAGAIN */
 			else if (error == EWOULDBLOCK)
-				error = EAGAIN;  // Convert timeout to EAGAIN
+				error = EAGAIN;
 			goto out;
 		}
 		SEM_PRINTF(("semop:  good morning!\n"));
 	}
+
 done:
 	/*
 	 * Process any SEM_UNDO requests.
@@ -1283,6 +1328,7 @@ done:
 			 * op's.
 			 */
 			int adjval;
+
 			if ((sops[i].sem_flg & SEM_UNDO) == 0)
 				continue;
 			adjval = sops[i].sem_op;
@@ -1292,6 +1338,7 @@ done:
 			    sops[i].sem_num, -adjval);
 			if (error == 0)
 				continue;
+
 			/*
 			 * Oh-Oh!  We ran out of either sem_undo's or undo's.
 			 * Rollback the adjustments to this point and then
@@ -1311,21 +1358,26 @@ done:
 				    sops[i].sem_num, adjval) != 0)
 					panic("semop - can't undo undos");
 			}
+
 			for (i = 0; i < nsops; i++)
 				semaptr->_sem_base[sops[i].sem_num].semval -=
 				    sops[i].sem_op;
+
 			SEM_PRINTF(("error = %d from semundo_adjust\n", error));
 			goto out;
 		} /* loop through the sops */
 	} /* if (do_undos) */
+
 	/* We're definitely done - set the sempid's */
 	for (i = 0; i < nsops; i++) {
 		sopptr = &sops[i];
 		semptr = &semaptr->_sem_base[sopptr->sem_num];
 		semptr->sempid = p->p_pid;
 	}
+
 	/* Update sem_otime */
 	semaptr->sem_otime = time_second;
+
 	/* Do a wakeup if any semaphore was up'd. */
 	if (do_wakeup) {
 		SEM_PRINTF(("semop:  doing wakeup\n"));
@@ -1334,6 +1386,7 @@ done:
 	}
 	SEM_PRINTF(("semop:  done\n"));
 	*retval = 0;
+
  out:
 	mutex_exit(&semlock);
 	if (sops != small_sops)
