@@ -1,4 +1,4 @@
-/* $NetBSD: syscall.h,v 1.326 2024/05/20 01:40:44 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -1422,6 +1422,9 @@
 /* syscall: "__dup3100" ret: "int" args: "int" "int" "int" */
 #define	SYS___dup3100	505
 
-#define	SYS_MAXSYSCALL	506
+/* syscall: "semtimedop" ret: "int" args: "int" "struct sembuf *" "size_t" "const struct timespec *" */
+#define	SYS_semtimedop	506
+
+#define	SYS_MAXSYSCALL	507
 #define	SYS_NSYSENT	512
 #endif /* _SYS_SYSCALL_H_ */
