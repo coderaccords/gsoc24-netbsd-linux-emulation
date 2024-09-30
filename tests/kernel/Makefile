@@ -18,6 +18,7 @@ TESTS_C+=	t_pty
 TESTS_C+=	t_memfd_create
 TESTS_C+=	t_mqueue
 TESTS_C+=	t_proccwd
+TESTS_C+=	t_semtimedop
 TESTS_C+=	t_signal_and_sp
 TESTS_C+=	t_sysv
 TESTS_C+=	t_subr_prf
