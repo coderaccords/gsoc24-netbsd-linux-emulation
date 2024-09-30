@@ -209,6 +209,5 @@ static struct sc_autoload netbsd_syscalls_autoload[] = {
 #else
 #endif
 	    { SYS_compat_100_dup3, "compat_100" },
-	    { SYS_semtimedop, "sysv_ipc" },
 	    { 0, NULL }
 };

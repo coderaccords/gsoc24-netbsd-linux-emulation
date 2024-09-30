@@ -2480,7 +2480,7 @@ struct sysent sysent[] = {
 	{
 		ns(struct sys_semtimedop_args),
 		.sy_flags = SYCALL_ARG_PTR,
-		.sy_call = (sy_call_t *)sys_nomodule
+		.sy_call = (sy_call_t *)sys_semtimedop
 	},		/* 506 = semtimedop */
 	{
 		.sy_call = sys_nosys,
@@ -2515,5 +2515,5 @@ const uint32_t sysent_nomodbits[] = {
 	0x007fe338,	/* syscalls 384-415 */
 	0x1c4f0040,	/* syscalls 416-447 */
 	0x00000040,	/* syscalls 448-479 */
-	0x04000000,	/* syscalls 480-511 */
+	0x00000000,	/* syscalls 480-511 */
 };

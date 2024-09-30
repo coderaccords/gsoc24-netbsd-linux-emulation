@@ -8660,8 +8660,7 @@ struct sysent rump_sysent[] = {
 		.sy_call = (sy_call_t *)(void *)rumpns_enosys,
 	},		/* 505 = __dup3100 */
 	{
-		.sy_flags = SYCALL_NOSYS,
-		.sy_call = (sy_call_t *)(void *)rumpns_sys_nomodule,
+		.sy_call = (sy_call_t *)(void *)rumpns_enosys,
 },		/* 506 = semtimedop */
 	{
 		.sy_flags = SYCALL_NOSYS,
@@ -8701,7 +8700,7 @@ const uint32_t rump_sysent_nomodbits[] = {
 	0x007fe338,	/* syscalls 384-415 */
 	0x1c4f0040,	/* syscalls 416-447 */
 	0x00000040,	/* syscalls 448-479 */
-	0x04000000,	/* syscalls 480-511 */
+	0x00000000,	/* syscalls 480-511 */
 };
 CTASSERT(__arraycount(rump_sysent) == SYS_NSYSENT);
 __strong_alias(rumpns_sysent,rump_sysent);
