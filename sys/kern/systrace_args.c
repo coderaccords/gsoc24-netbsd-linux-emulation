@@ -3950,7 +3950,7 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		iarg[0] = SCARG(p, semid); /* int */
 		uarg[1] = (intptr_t) SCARG(p, sops); /* struct sembuf * */
 		uarg[2] = SCARG(p, nsops); /* size_t */
-		uarg[3] = (intptr_t) SCARG(p, timeout); /* const struct timespec * */
+		uarg[3] = (intptr_t) SCARG(p, timeout); /* struct timespec * */
 		*n_args = 4;
 		break;
 	}
@@ -10677,7 +10677,7 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			p = "size_t";
 			break;
 		case 3:
-			p = "const struct timespec *";
+			p = "struct timespec *";
 			break;
 		default:
 			break;

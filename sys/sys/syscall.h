@@ -1422,7 +1422,7 @@
 /* syscall: "__dup3100" ret: "int" args: "int" "int" "int" */
 #define	SYS___dup3100	505
 
-/* syscall: "semtimedop" ret: "int" args: "int" "struct sembuf *" "size_t" "const struct timespec *" */
+/* syscall: "semtimedop" ret: "int" args: "int" "struct sembuf *" "size_t" "struct timespec *" */
 #define	SYS_semtimedop	506
 
 #define	SYS_MAXSYSCALL	507

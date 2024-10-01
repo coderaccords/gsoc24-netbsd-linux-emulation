@@ -3414,7 +3414,7 @@ struct sys_semtimedop_args {
 	syscallarg(int) semid;
 	syscallarg(struct sembuf *) sops;
 	syscallarg(size_t) nsops;
-	syscallarg(const struct timespec *) timeout;
+	syscallarg(struct timespec *) timeout;
 };
 check_syscall_args(sys_semtimedop)
 #endif /* !RUMP_CLIENT */
