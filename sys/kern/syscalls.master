@@ -1067,4 +1067,4 @@
 505	STD	RUMP	{ int|sys|100|dup3(int from, int to, int flags); }
 506	STD 		{ int|sys||semtimedop(int semid, \
 			    	struct sembuf *sops, size_t nsops, \
-			    	const struct timespec *timeout); }
+			    	struct timespec *timeout); }
