@@ -210,6 +210,7 @@ extern struct semid_ds *sema;		/* semaphore id pool */
 
 #ifndef _KERNEL
 #include <sys/cdefs.h>
+#include <sys/timespec.h>
 
 __BEGIN_DECLS
 #ifndef __LIBC12_SOURCE__
@@ -217,6 +218,7 @@ int	semctl(int, int, int, ...) __RENAME(__semctl50);
 #endif
 int	semget(key_t, int, int);
 int	semop(int, struct sembuf *, size_t);
+int	semtimedop(int, struct sembuf *, size_t, struct timespec *);
 #if defined(_NETBSD_SOURCE)
 int	semconfig(int);
 #endif

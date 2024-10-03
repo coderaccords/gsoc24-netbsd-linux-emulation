@@ -40,18 +40,6 @@ __RCSID("$NetBSD$");
 #include <atf-c.h>
 #include <sys/wait.h>
 
-/* XXX: Put it in libc and <sys/sem.h> */
-
-# define SYS_semtimedop 506
-int	semtimedop(int, struct sembuf *, size_t nsops, const struct timespec *timeout);
-
-/* Basic semtimedop functionality */
-int
-semtimedop(int semid, struct sembuf *sops, size_t nsops, const struct timespec *timeout)
-{
-	return syscall(SYS_semtimedop, semid, sops, nsops, timeout);
-}
-
 ATF_TC(semtimedop_basic);
 ATF_TC_HEAD(semtimedop_basic, tc)
 {

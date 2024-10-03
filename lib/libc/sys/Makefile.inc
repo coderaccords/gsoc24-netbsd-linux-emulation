@@ -147,7 +147,7 @@ ASM=\
 	rasctl.S readlinkat.S reboot.S \
 		rename.S renameat.S revoke.S rmdir.S \
 	semconfig.S semget.S semop.S \
-		setegid.S seteuid.S \
+		semtimedop.S setegid.S seteuid.S \
 		setgid.S setgroups.S __setitimer50.S __setlogin.S setpgid.S \
 		setpriority.S \
 		setregid.S setreuid.S setrlimit.S setsid.S setsockopt.S \
