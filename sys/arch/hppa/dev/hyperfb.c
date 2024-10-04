@@ -1,4 +1,4 @@
-/*	$NetBSD: hyperfb.c,v 1.15 2024/09/11 13:31:13 macallan Exp $	*/
+/*	$NetBSD: hyperfb.c,v 1.17 2024/10/01 07:44:22 macallan Exp $	*/
 
 /*
  * Copyright (c) 2024 Michael Lorenz
@@ -32,7 +32,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: hyperfb.c,v 1.15 2024/09/11 13:31:13 macallan Exp $");
+__KERNEL_RCSID(0, "$NetBSD: hyperfb.c,v 1.17 2024/10/01 07:44:22 macallan Exp $");
 
 #include "opt_cputype.h"
 #include "opt_hyperfb.h"
@@ -92,7 +92,6 @@ struct	hyperfb_softc {
 	struct wsscreen_list sc_screenlist;
 	struct vcons_data vd;
 	int sc_mode;
-	void (*sc_putchar)(void *, int, int, u_int, long);
 	u_char sc_cmap_red[256];
 	u_char sc_cmap_green[256];
 	u_char sc_cmap_blue[256];
@@ -554,7 +553,6 @@ hyperfb_init_screen(void *cookie, struct vcons_screen *scr,
 
 	ri->ri_hw = scr;
 
-	sc->sc_putchar = ri->ri_ops.putchar;
 	ri->ri_ops.copyrows = hyperfb_copyrows;
 	ri->ri_ops.copycols = hyperfb_copycols;
 	ri->ri_ops.eraserows = hyperfb_eraserows;
@@ -1122,7 +1120,7 @@ hyperfb_putchar(void *cookie, int row, int col, u_int c, long attr)
 	struct wsdisplay_font *font = PICK_FONT(ri, c);
 	struct vcons_screen *scr = ri->ri_hw;
 	struct hyperfb_softc *sc = scr->scr_cookie;
-	uint8_t *data;
+	void *data;
 	int i, x, y, wi, he/*, rv = GC_NOPE*/;
 	uint32_t bg, fg, mask;
 
@@ -1173,22 +1171,22 @@ hyperfb_putchar(void *cookie, int row, int col, u_int c, long attr)
 	 * character
 	 */
 	if (ri->ri_font->stride == 1) {
+		uint8_t *data8 = data;
 		for (i = 0; i < he; i++) {
 			hyperfb_wait_fifo(sc, 2);
-			mask = ((uint32_t)*data) << 24;
-			hyperfb_write4(sc, NGLE_REG_8, mask);	
+			mask = *data8;
+			hyperfb_write4(sc, NGLE_REG_8, mask << 24);	
 			hyperfb_write4(sc, NGLE_REG_9, (wi << 16) | 1);
-			data++;
+			data8++;
 		}
 	} else {
+		uint16_t *data16 = data;
 		for (i = 0; i < he; i++) {
 			hyperfb_wait_fifo(sc, 2);
-			mask = ((uint32_t)*data) << 8;
-			data++;
-			mask |= *data;
-			data++;
+			mask = *data16;
 			hyperfb_write4(sc, NGLE_REG_8, mask << 16);	
 			hyperfb_write4(sc, NGLE_REG_9, (wi << 16) | 1);
+			data16++;
 		}
 	}
 #if 0

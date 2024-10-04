@@ -1,4 +1,4 @@
-/*	$NetBSD: linux_fcntl.h,v 1.22 2023/08/19 17:57:54 christos Exp $	*/
+/*	$NetBSD: linux_fcntl.h,v 1.23 2024/09/28 19:35:56 christos Exp $	*/
 
 /*-
  * Copyright (c) 1995, 1998 The NetBSD Foundation, Inc.

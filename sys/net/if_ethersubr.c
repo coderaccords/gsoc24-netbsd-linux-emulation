@@ -1,4 +1,4 @@
-/*	$NetBSD: if_ethersubr.c,v 1.327 2024/07/05 04:31:53 rin Exp $	*/
+/*	$NetBSD: if_ethersubr.c,v 1.329 2024/09/28 09:03:13 mlelstv Exp $	*/
 
 /*
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
@@ -61,7 +61,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: if_ethersubr.c,v 1.327 2024/07/05 04:31:53 rin Exp $");
+__KERNEL_RCSID(0, "$NetBSD: if_ethersubr.c,v 1.329 2024/09/28 09:03:13 mlelstv Exp $");
 
 #ifdef _KERNEL_OPT
 #include "opt_inet.h"
@@ -423,7 +423,8 @@ ether_output(struct ifnet * const ifp0, struct mbuf * const m0,
 
 #if NCARP > 0
 	if (ifp0 != ifp && ifp0->if_type == IFT_CARP) {
-	 	memcpy(eh->ether_shost, CLLADDR(ifp0->if_sadl),
+		/* update with virtual MAC */
+		memcpy(eh->ether_shost, CLLADDR(ifp0->if_sadl),
 		    sizeof(eh->ether_shost));
 	}
 #endif
@@ -855,7 +856,7 @@ ether_input(struct ifnet *ifp, struct mbuf *m)
 		default:
 			if (subtype == 0 || subtype > 10) {
 				/* illegal value */
-				goto error;
+				goto noproto;
 			}
 			/* unknown subtype */
 			break;

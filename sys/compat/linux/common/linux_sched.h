@@ -1,4 +1,4 @@
-/*	$NetBSD: linux_sched.h,v 1.10 2021/09/19 23:51:37 thorpej Exp $	*/
+/*	$NetBSD: linux_sched.h,v 1.11 2024/09/28 19:35:56 christos Exp $	*/
 
 /*-
  * Copyright (c) 1999 The NetBSD Foundation, Inc.
