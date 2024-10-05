@@ -1250,7 +1250,6 @@ linux_sys_copy_file_range(lwp_t *l,
 			DPRINTF("%s: Error adjusting user space offset\n",
 			    __func__);
 		}
-		goto out;
 	}
 
 	if (have_off_out) {
