@@ -65,6 +65,9 @@ __KERNEL_RCSID(0, "$NetBSD: linux_sched.c,v 1.83 2024/10/03 12:56:49 hannken Exp
 static int linux_clone_nptl(struct lwp *, const struct linux_sys_clone_args *,
     register_t *);
 
+static int linux_clone3_nptl(struct lwp *, const struct linux_sys_clone3_args *,
+    register_t *);
+
 /* Unlike Linux, dynamically calculate CPU mask size */
 #define	LINUX_CPU_MASK_SIZE (sizeof(long) * ((ncpu + LONG_BIT - 1) / LONG_BIT))
 
@@ -166,13 +169,36 @@ linux_sys_clone(struct lwp *l, const struct linux_sys_clone_args *uap,
 	return 0;
 }
 
+// int
+// linux_sys_clone(struct lwp *l, const struct linux_sys_clone_args *uap, register_t *retval)
+// {
+// 	struct linux_user_clone3_args cl_args;
+
+// 	/* Initialize the clone3 arguments structure */
+// 	memset(&cl_args, 0, sizeof(cl_args));
+// 	cl_args.flags = SCARG(uap, flags);
+// 	cl_args.stack = (uint64_t)SCARG(uap, stack);
+// 	cl_args.exit_signal = cl_args.flags & LINUX_CLONE_CSIGNAL;
+
+// 	/* Call linux_sys_clone3 with the prepared arguments */
+// 	struct linux_sys_clone3_args clone3_args = {
+// 		.cl_args = &cl_args,
+// 		.size = sizeof(cl_args)
+// 	};
+
+// 	return linux_sys_clone3(l, &clone3_args, retval);
+// }
+
 
 int
 linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, register_t *retval)
 {
 	struct linux_user_clone3_args cl_args;
-	struct linux_sys_clone_args clone_args;
 	int error;
+	struct linux_emuldata *led;
+	int flags, sig;
+
+	printf("Called linux_sys_clone3\n");
 
 	if (SCARG(uap, size) != sizeof(cl_args)) {
 	    DPRINTF("%s: Invalid size less or more\n", __func__);
@@ -199,15 +225,11 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
 		return EINVAL;
 	}
 
-#if 0
-	// XXX: this is wrong, exit_signal is the signal to deliver to the
-	// process upon exit.
 	if ((cl_args.exit_signal & ~(uint64_t)LINUX_CLONE_CSIGNAL) != 0){
 		DPRINTF("%s: Disallowed flags for clone3: %#x\n", __func__,
 		    cl_args.exit_signal & ~(uint64_t)LINUX_CLONE_CSIGNAL);
 		return EINVAL;
 	}
-#endif
 
 	if (cl_args.stack == 0 && cl_args.stack_size != 0) {
 		DPRINTF("%s: Stack is NULL but stack size is not 0\n",
@@ -220,25 +242,143 @@ linux_sys_clone3(struct lwp *l, const struct linux_sys_clone3_args *uap, registe
 		return EINVAL;
 	}
 
-	int flags = cl_args.flags & LINUX_CLONE_ALLOWED_FLAGS;
-#if 0
-	int sig = cl_args.exit_signal & LINUX_CLONE_CSIGNAL;
-#endif
-	// XXX: Pidfd member handling
-	// XXX: we don't have cgroups
-	// XXX: what to do with tid_set and tid_set_size
-	// XXX: clone3 has stacksize, instead implement clone as a clone3
-	// wrapper.
-	SCARG(&clone_args, flags) = flags;
-	SCARG(&clone_args, stack) = (void *)(uintptr_t)cl_args.stack;
-	SCARG(&clone_args, parent_tidptr) =
-	    (void *)(intptr_t)cl_args.parent_tid;
-	SCARG(&clone_args, tls) =
-	    (void *)(intptr_t)cl_args.tls;
-	SCARG(&clone_args, child_tidptr) =
-	    (void *)(intptr_t)cl_args.child_tid;
+	/*
+	 * Thread group implies shared signals. Shared signals
+	 * imply shared VM. This matches what Linux kernel does.
+	 */
+	if (cl_args.flags & LINUX_CLONE_THREAD
+	    && (cl_args.flags & LINUX_CLONE_SIGHAND) == 0)
+		return EINVAL;
+	if (cl_args.flags & LINUX_CLONE_SIGHAND
+	    && (cl_args.flags & LINUX_CLONE_VM) == 0)
+		return EINVAL;
 
-	return linux_sys_clone(l, &clone_args, retval);
+	/*
+	 * The thread group flavor is implemented totally differently.
+	 */
+	if (cl_args.flags & LINUX_CLONE_THREAD)
+		return linux_clone3_nptl(l, uap, retval);
+	
+	flags = 0;
+	if (cl_args.flags & LINUX_CLONE_VM)
+		flags |= FORK_SHAREVM;
+	if (cl_args.flags & LINUX_CLONE_FS)
+		flags |= FORK_SHARECWD;
+	if (cl_args.flags & LINUX_CLONE_FILES)
+		flags |= FORK_SHAREFILES;
+	if (cl_args.flags & LINUX_CLONE_SIGHAND)
+		flags |= FORK_SHARESIGS;
+	if (cl_args.flags & LINUX_CLONE_VFORK)
+		flags |= FORK_PPWAIT;
+
+	sig = cl_args.exit_signal & LINUX_CLONE_CSIGNAL;
+	if (sig < 0 || sig >= LINUX__NSIG)
+		return EINVAL;
+	sig = linux_to_native_signo[sig];
+	if (cl_args.flags & LINUX_CLONE_CHILD_SETTID) {
+		led = l->l_emuldata;
+		led->led_child_tidptr = (void *)(intptr_t)cl_args.child_tid;
+	}
+
+	if ((error = fork1(l, flags, sig, (void *)(uintptr_t)cl_args.stack,
+	    (size_t)cl_args.stack_size, linux_child_return, NULL, retval)) != 0) {
+		DPRINTF("%s: fork1: error %d\n", __func__, error);
+		return error;
+	}
+
+	return 0;
+	
+}
+
+static int
+linux_clone3_nptl(struct lwp *l, const struct linux_sys_clone3_args *uap, register_t *retval)
+{
+	/* {
+		syscallarg(struct linux_user_clone3_args *) cl_args;
+		syscallarg(size_t) size;
+	} */
+	struct proc *p;
+	struct lwp *l2;
+	struct linux_emuldata *led;
+	void *parent_tidptr, *tls, *child_tidptr;
+	vaddr_t uaddr;
+	lwpid_t lid;
+	int flags, error;
+	struct linux_user_clone3_args cl_args;
+
+	printf("Called linux_clone3_nptl\n");
+
+	if (SCARG(uap, size) != sizeof(cl_args)) {
+	    DPRINTF("%s: Invalid size less or more\n", __func__);
+	    return EINVAL;
+	}
+
+	error = copyin(SCARG(uap, cl_args), &cl_args, SCARG(uap, size));
+	if (error) {
+		DPRINTF("%s: Copyin failed: %d\n", __func__, error);
+		return error;
+	}
+
+	p = l->l_proc;
+	flags = cl_args.flags;
+	parent_tidptr = (void *)(intptr_t)cl_args.parent_tid;
+	tls = (void *)(intptr_t)cl_args.tls;
+	child_tidptr = (void *)(intptr_t)cl_args.child_tid;
+
+	uaddr = uvm_uarea_alloc();
+	if (__predict_false(uaddr == 0)) {
+		return ENOMEM;
+	}
+
+	error = lwp_create(l, p, uaddr, LWP_DETACHED,
+	    (void *)(uintptr_t)cl_args.stack, (size_t)cl_args.stack_size,
+	    child_return, NULL, &l2, l->l_class,
+	    &l->l_sigmask, &l->l_sigstk);
+	if (__predict_false(error)) {
+		DPRINTF("%s: lwp_create error=%d\n", __func__, error);
+		uvm_uarea_free(uaddr);
+		return error;
+	}
+	lid = l2->l_lid;
+
+	/* LINUX_CLONE_CHILD_CLEARTID: clear TID in child's memory on exit() */
+	if (flags & LINUX_CLONE_CHILD_CLEARTID) {
+		led = l2->l_emuldata;
+		led->led_clear_tid = child_tidptr;
+	}
+
+	/* LINUX_CLONE_PARENT_SETTID: store child's TID in parent's memory */
+	if (flags & LINUX_CLONE_PARENT_SETTID) {
+		if ((error = copyout(&lid, parent_tidptr, sizeof(lid))) != 0)
+			printf("%s: LINUX_CLONE_PARENT_SETTID "
+			    "failed (parent_tidptr = %p tid = %d error=%d)\n",
+			    __func__, parent_tidptr, lid, error);
+	}
+
+	/* LINUX_CLONE_CHILD_SETTID: store child's TID in child's memory  */
+	if (flags & LINUX_CLONE_CHILD_SETTID) {
+		if ((error = copyout(&lid, child_tidptr, sizeof(lid))) != 0)
+			printf("%s: LINUX_CLONE_CHILD_SETTID "
+			    "failed (child_tidptr = %p, tid = %d error=%d)\n",
+			    __func__, child_tidptr, lid, error);
+	}
+
+	if (flags & LINUX_CLONE_SETTLS) {
+		error = LINUX_LWP_SETPRIVATE(l2, tls);
+		if (error) {
+			DPRINTF("%s: LINUX_LWP_SETPRIVATE %d\n", __func__,
+			    error);
+			lwp_exit(l2);
+			return error;
+		}
+	}
+
+	/* Set the new LWP running. */
+	lwp_start(l2, 0);
+
+	retval[0] = lid;
+	retval[1] = 0;
+	return 0;
 }
 
 static int
