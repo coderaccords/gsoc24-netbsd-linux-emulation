@@ -1074,6 +1074,7 @@ linux_sys_copy_file_range(lwp_t *l,
 	file_t *fp_in, *fp_out;
 	struct vnode *invp, *outvp;
 	off_t off_in = 0, off_out = 0;
+	off_t prev_off_in = 0, prev_off_out = 0;
 	struct vattr vattr_in, vattr_out;
 	ssize_t total_copied = 0;
 	size_t bytes_left, to_copy;
@@ -1186,7 +1187,13 @@ linux_sys_copy_file_range(lwp_t *l,
 		aiov.iov_len = to_copy;
 		auio.uio_iov = &aiov;
 		auio.uio_iovcnt = 1;
-		auio.uio_offset = have_off_in ? off_in : fp_in->f_offset;
+
+		/* Lock the file pointer for obtaining the offset */
+		mutex_enter(&fp_in->f_lock);
+		prev_off_in = have_off_in ? off_in : fp_in->f_offset;
+		auio.uio_offset = prev_off_in;
+		mutex_exit(&fp_in->f_lock);
+
 		auio.uio_resid = to_copy;
 		auio.uio_rw = UIO_READ;
 		auio.uio_vmspace = l->l_proc->p_vmspace;
@@ -1194,15 +1201,16 @@ linux_sys_copy_file_range(lwp_t *l,
 
 		/* Perform read using vn_read */
 		error = VOP_READ(fp_in->f_vnode, &auio, 0, l->l_cred);
-		VOP_UNLOCK(fp_in->f_vnode);
 		if (error) {
 			DPRINTF("%s: Read error %d\n", __func__, error);
+			VOP_UNLOCK(fp_in->f_vnode);
 			break;
 		}
 
 		size_t read_bytes = to_copy - auio.uio_resid;
 		if (read_bytes == 0) {
 			/* EOF reached */
+			VOP_UNLOCK(fp_in->f_vnode);
 			break;
 		}
 
@@ -1213,7 +1221,13 @@ linux_sys_copy_file_range(lwp_t *l,
 		aiov.iov_len = read_bytes;
 		auio.uio_iov = &aiov;
 		auio.uio_iovcnt = 1;
-		auio.uio_offset = have_off_out ? off_out : fp_out->f_offset;
+
+		/* Lock the file pointer for obtaining the offset */
+		mutex_enter(&fp_out->f_lock);
+		prev_off_out = have_off_out ? off_out : fp_out->f_offset;
+		auio.uio_offset = prev_off_out;
+		mutex_exit(&fp_out->f_lock);
+
 		auio.uio_resid = read_bytes;
 		auio.uio_rw = UIO_WRITE;
 		auio.uio_vmspace = l->l_proc->p_vmspace;
@@ -1221,11 +1235,6 @@ linux_sys_copy_file_range(lwp_t *l,
 
 		/* Perform the write */
 		error = VOP_WRITE(fp_out->f_vnode, &auio, 0, l->l_cred);
-		VOP_UNLOCK(fp_out->f_vnode);
-		if (error) {
-			DPRINTF("%s: Write error %d\n", __func__, error);
-			break;
-		}
 		size_t written_bytes = read_bytes - auio.uio_resid;
 		total_copied += written_bytes;
 		bytes_left -= written_bytes;
@@ -1234,12 +1243,26 @@ linux_sys_copy_file_range(lwp_t *l,
 		if (have_off_in) {
 			off_in += written_bytes;
 		} else {
-			fp_in->f_offset += written_bytes;
+			mutex_enter(&fp_in->f_lock);
+			fp_in->f_offset = prev_off_in + written_bytes;
+			mutex_exit(&fp_in->f_lock);
 		}
 		if (have_off_out) {
 			off_out += written_bytes;
 		} else {
-			fp_out->f_offset += written_bytes;
+			mutex_enter(&fp_out->f_lock);
+			fp_out->f_offset = prev_off_out + written_bytes;
+			mutex_exit(&fp_out->f_lock);
+		}
+
+		/* Unlock the vnodes */
+		VOP_UNLOCK(fp_in->f_vnode);
+		VOP_UNLOCK(fp_out->f_vnode);
+
+		/* Check for write error */
+		if (error) {
+			DPRINTF("%s: Write error %d\n", __func__, error);
+			break;
 		}
 	}
 
