@@ -6,11 +6,11 @@ NetBSD with the it's in-kernel ABI layer `COMPAT LINUX` enables support for runn
 ## Implementation Details
 
 #### `semtimedop` 
-`semtimedop` is implemented in the kernel as a NetBSD native system call. Difference between `semop` and `semtimedop` is that, the latter accepts a `timeout` argument which specifies maximum time a thread can sleep while waiting to perform semaphore operations. This was identified an important system call for NetBSD system hence is implemented natively in the NetBSD kernel. The major change from `semop` was how threads are put to sleep while waiting. Primarily `cv_wait_sig` condition variable in `semop` needed to be replaced with `cv_timedwait_sig` to honour the `timeout` argument. To reduce code duplication a common internal function `do_semop` was introduced for both `semop` and `semtimedop` system calls to call.
+`semtimedop` is implemented in the kernel as a native system call. Difference between `semop` and `semtimedop` is, the latter accepts a `timeout` argument which specifies maximum time a thread can sleep while waiting to perform semaphore operations. This was identified as an important system call for NetBSD system hence is implemented natively in the NetBSD kernel. The major change from `semop` was how threads are put to sleep while waiting. Primarily `cv_wait_sig` condition variable in `semop` needed to be replaced with `cv_timedwait_sig` to honour the `timeout` argument. To reduce code duplication a common internal function `do_semop` was introduced for both `semop` and `semtimedop` system calls to call.
 
 [Merge link](https://github.com/NetBSD/src/commit/ae03c1998c29b7b9ee911838ae495a26c5080cc4) 
 #### `copy_file_range`
-`copy_file_range` in linux allows copy offloading. But this expects file systems support to effectively utilise copy offloading, without which it calls into a fallback mechanism. Considering this similar fallback mechanism has been implemented in NetBSD. This used `uvm` objects to perform reads and writes on given ranges and used a fixed size buffer to implement a looped copying mechanism. File offsets were then updated accordingly.
+`copy_file_range` in linux allows copy offloading. But this expects file systems support to effectively utilise copy offloading, without which it calls into a fallback mechanism. Considering this, a similar fallback mechanism has been implemented in NetBSD. This used `uvm` objects to perform reads and writes on given ranges and used a fixed size buffer to implement a looped copying mechanism. File offsets were then updated accordingly.
 
 [Merge link](https://github.com/NetBSD/src/commit/a3740e150a4bea0d03e70539dc6fe36956b72c38) 
 #### `renameat2`
@@ -56,24 +56,6 @@ To test native system calls as well as kernel enhancements, NetBSD's Automated T
 ## Closing remarks
 NetBSD has a thriving and welcoming community that is always there for help when you need to solicit ideas about when you are stuck. In particular I would like to thank my mentor Christos Zoulas for always helping me to figure out things and at times even hand holding me. Thanks a lot, Christos!
 
-The system calls extended in this project particularly involved file systems and inter process communication primitives. Working on them at kernel-level provided me with an invaluable appreciation for their functionality along.
+The system calls extended in this project particularly involved file systems and inter process communication primitives. Working on them at kernel-level provided me with an invaluable appreciation for their functionality and all the intricacies involved. 
 
-Working on an unfamiliar software, especially something as massive and impactful as kernel comes with it's fair shares of challenges and Aha! moments. My dive into NetBSD kernel was no different. From writing system calls to writing tests for those system calls to finally adding [manual page entries](https://github.com/NetBSD/src/commit/4d27234e8ccea503b22ce787da880843cc749a13) for them, I got to learn lots of new things. I am extremely grateful for all the exposure this project has provided me. I would like to thank NetBSD foundation for accepting my proposal as well as GSoC for providing me with this opportunity.
-
-
-
-<!-- ## Appendix
-This section contains tips to help someone get stated with setting up NetBSD and start hacking :)
-
-### Following Will be added soon
-#### VM Setup
-1. SSH
-2. SSHFS
-#### Library Build
-
-### testing
-#### Native system calls
-#### Linux compatibility system calls
-1. Static compilation
-2. Issue with file system support
- -->
+Working on an unfamiliar software, especially something as massive and impactful as kernel comes with it's fair shares of challenges and Aha! moments. My dive into NetBSD kernel was no different. From writing system calls to writing tests for those system calls to finally adding [manual page entries](https://github.com/NetBSD/src/commit/4d27234e8ccea503b22ce787da880843cc749a13) for them, I got to learn lots of new things. I am extremely grateful for all the exposure this project has provided me. I would like to thank the NetBSD foundation for accepting my proposal as well as GSoC for providing me with this opportunity!
