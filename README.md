@@ -55,7 +55,9 @@ To test native system calls as well as kernel enhancements, NetBSD's Automated T
 
 ## Closing remarks
 NetBSD has a thriving and welcoming community that is always there for help when you need to solicit ideas about when you are stuck. In particular I would like to thank my mentor Christos Zoulas for always helping me to figure out things and at times even hand holding me. Thanks a lot, Christos!
+
 The system calls extended in this project particularly involved file systems and inter process communication primitives. Working on them at kernel-level provided me with an invaluable appreciation for their functionality along.
+
 Working on an unfamiliar software, especially something as massive and impactful as kernel comes with it's fair shares of challenges and Aha! moments. My dive into NetBSD kernel was no different. From writing system calls to writing tests for those system calls to finally adding [manual page entries](https://github.com/NetBSD/src/commit/4d27234e8ccea503b22ce787da880843cc749a13) for them, I got to learn lots of new things. I am extremely grateful for all the exposure this project has provided me. I would like to thank NetBSD foundation for accepting my proposal as well as GSoC for providing me with this opportunity.
 
 
